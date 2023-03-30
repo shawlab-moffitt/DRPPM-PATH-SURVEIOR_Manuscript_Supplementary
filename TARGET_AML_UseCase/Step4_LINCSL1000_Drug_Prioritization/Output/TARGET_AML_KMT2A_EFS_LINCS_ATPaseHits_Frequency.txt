@@ -1,0 +1,16 @@
+CMap_Name	Frequency
+ouabain	24
+digoxin	14
+strophanthidin	12
+cinobufagin	9
+cymarin	8
+proscillaridin	7
+bufalin	6
+digitoxin	6
+thapsigargin	4
+evodiamine	2
+gitoxigenin	2
+oligomycin-a	2
+ursolic-acid	2
+cyclopiazonic-acid	1
+oligomycin-c	1
