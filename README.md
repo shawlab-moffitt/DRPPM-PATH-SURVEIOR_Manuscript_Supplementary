@@ -9,7 +9,9 @@ The source and url links to the data below were also added to our existing GitHu
 
 # PAN ICI Melanoma Immune Pathway Identification Use Case Example
 
-* Parent directory for this analysis: http://shawlab.science/shiny/DRPPM_PATH_SURVEIOR_ExampleUseCases/PANICI_Melanoma_UseCase/
+* Parent directory for this analysis:
+  * http://shawlab.science/shiny/DRPPM_PATH_SURVEIOR_ExampleUseCases/PANICI_Melanoma_UseCase/
+  * https://github.com/shawlab-moffitt/DRPPM-PATH-SURVEIOR_Manuscript_Supplementary/tree/main/PANICI_Melanoma_UseCase
 
 ## Step 1 - Pipeline mode
 
@@ -57,7 +59,9 @@ The source and url links to the data below were also added to our existing GitHu
 
 # TARGET AML 1031 Drug Discovery Use Case Example
 
-* Parent directory for this analysis: http://shawlab.science/shiny/DRPPM_PATH_SURVEIOR_ExampleUseCases/TARGET_AML_UseCase/
+* Parent directory for this analysis:
+  * http://shawlab.science/shiny/DRPPM_PATH_SURVEIOR_ExampleUseCases/TARGET_AML_UseCase/
+  * https://github.com/shawlab-moffitt/DRPPM-PATH-SURVEIOR_Manuscript_Supplementary/tree/main/TARGET_AML_UseCase
 
 ## Interactive DRPPM-PATH-SURVEIOR R Shiny App featuring the TARGET AML 1031 data
 
