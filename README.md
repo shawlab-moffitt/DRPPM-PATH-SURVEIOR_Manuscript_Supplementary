@@ -1,8 +1,8 @@
-# DRPPM-PATH-SURVEIOR_Manuscript_Supplementary
+# DRPPM-PATH-SURVEIOR Manuscript Supplementary
 
 To ensure reproducibility, transparency, and accessibility for the work we have done to develop the DRPPM-PATH-SURVEIOR suite of tools, we have arranged this github in tandem with our manuscript that we are working towards publication. Users may explore the code and figures from the use cases we worked on, including the TARGET AML drug screening and identification of immune pathways in melanoma patients. To access the input and output from our analysis, users can use the URL links below.
 
-The source and url links to the data were also added to our existing GitHub page. https://github.com/shawlab-moffitt/DRPPM-PATH-SURVEIOR-Suite
+The source and url links to the data below were also added to our existing GitHub page, https://github.com/shawlab-moffitt/DRPPM-PATH-SURVEIOR-Suite. Here you can find up-to-date source code to performe this analysis.
 
 * For the parent directory of entire analysis please go here:
   * http://shawlab.science/shiny/DRPPM_PATH_SURVEIOR_ExampleUseCases/
@@ -54,7 +54,7 @@ The source and url links to the data were also added to our existing GitHub page
 
 * Parent directory for this analysis: http://shawlab.science/shiny/DRPPM_PATH_SURVEIOR_ExampleUseCases/TARGET_AML_UseCase/
 
-## Interactve DRPPM-PATH-SURVEIOR R Shiny App featuring the TARGET AML 1031 data
+## Interactive DRPPM-PATH-SURVEIOR R Shiny App featuring the TARGET AML 1031 data
 
 * An interactive Shiny app that was used to generate a majority of the figures for this use case can be found here:
   * http://shawlab.science/shiny/DRPPM_PATH_SURVEIOR_ExampleUseCases/TARGET_AML_UseCase/TARGET_AML_KMT2A_SurvivalApp/
