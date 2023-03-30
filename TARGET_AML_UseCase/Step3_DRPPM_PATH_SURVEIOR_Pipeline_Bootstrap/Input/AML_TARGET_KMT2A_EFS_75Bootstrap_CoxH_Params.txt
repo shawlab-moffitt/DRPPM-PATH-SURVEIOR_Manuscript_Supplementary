@@ -1,0 +1,11 @@
+Project_Name	AML_TARGET_KMT2A_EFS_75Bootstrap
+Expression_Matrix_file	AML_TARGET_KMT2A75_expr.txt
+Meta_Data_File	AML_TARGET_KMT2A75_meta.txt
+Gene_Set_File	LINCS_L1000_gs_HS_DN_v2.RData
+Gene_Set_Name	LINCS.DN
+Output_File_Path	Output
+Survival_Time_Label	EFS.time
+Survival_ID_Label	Event.ID
+Rank_Genes	FALSE
+Covariate_Column_Label	
+Covariate_Reference	
