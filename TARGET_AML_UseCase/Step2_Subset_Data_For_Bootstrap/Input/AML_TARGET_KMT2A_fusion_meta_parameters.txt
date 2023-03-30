@@ -1,0 +1,6 @@
+SampleName	SampleName
+KMT2A-fusion	Feature
+OS.time	SurvivalTime
+EFS.time	SurvivalTime
+OS.ID	SurvivalID
+Event.ID	SurvivalID
