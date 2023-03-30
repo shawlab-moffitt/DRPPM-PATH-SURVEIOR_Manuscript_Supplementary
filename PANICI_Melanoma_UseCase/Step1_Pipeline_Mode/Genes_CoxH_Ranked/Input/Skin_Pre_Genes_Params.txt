@@ -1,0 +1,10 @@
+Project_Name	ICI_iAtlas_Skin_Pre
+Expression_Matrix_file	/share/Lab_Shaw/projects/ICI_CRI_iAtlas/Subset_ssGSEA_coxh_ranking_RED/Expr_Meta_data/Skin/Pan_ICI_iAtlas_Expr_Skin_Pre.txt
+Meta_Data_File	/share/Lab_Shaw/projects/ICI_CRI_iAtlas/Subset_ssGSEA_coxh_ranking_RED/Expr_Meta_data/Skin/Pan_ICI_iAtlas_Meta_Skin_Pre.txt
+Gene_Set_File	
+Output_File_Path	/share/Lab_Shaw/projects/ICI_CRI_iAtlas/Subset_ssGSEA_coxh_ranking_RED/Output_Skin/Output_Skin_Pre/Genes_v2/
+Survival_Time_Label	OS.time,PFI.time
+Survival_ID_Label	OS,PFI
+Rank_Genes	TRUE
+Covariate_Column_Label	
+Covariate_Reference	

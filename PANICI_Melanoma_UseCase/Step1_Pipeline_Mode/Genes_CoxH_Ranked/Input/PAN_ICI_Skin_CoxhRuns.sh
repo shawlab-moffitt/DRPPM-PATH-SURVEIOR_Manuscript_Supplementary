@@ -1,0 +1,1 @@
+Rscript ssGSEA_Coxh_Ranking.R Skin_Pre_Genes_Params.txt

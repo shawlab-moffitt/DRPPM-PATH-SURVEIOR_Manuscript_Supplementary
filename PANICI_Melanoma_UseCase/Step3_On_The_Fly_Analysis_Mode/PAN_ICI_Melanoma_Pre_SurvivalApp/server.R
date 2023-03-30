@@ -3,7 +3,7 @@
 
 ProjectName <- "PAN ICI Melanoma - Pre Treatment"
 
-ExpressionMatrix_file <- "PANICI_Skin_Pre_Expression.txt"
+ExpressionMatrix_file <- "PANICI_Skin_Pre_Expression.zip"
 
 MetaData_file <- "PANICI_Melanoma_PreTreatment_Meta_ImmDeconv.txt"
 

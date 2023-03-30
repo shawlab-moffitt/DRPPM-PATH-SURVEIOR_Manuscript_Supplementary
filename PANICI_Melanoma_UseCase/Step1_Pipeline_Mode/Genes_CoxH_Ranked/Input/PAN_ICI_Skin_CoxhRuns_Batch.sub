@@ -1,0 +1,24 @@
+#! /bin/bash
+
+#SBATCH --nodes 1
+#SBATCH --ntasks 1
+#SBATCH --cpus-per-task 1
+#SBATCH --time 3-0
+#SBATCH --array 1
+#SBATCH --mem-per-cpu 32G
+
+
+
+export PATH=$PATH:/share/dept_bbsr/Projects/Shaw_Timothy/3352_Splicing_Pipeline_2021/scripts/src/STAR-2.7.6a/source:/share/dept_bbsr/Projects/Shaw_Timothy/3352_Splicing_Pipeline_2021/scripts/DRPPM/DRPPM-master/export/:/share/dept_bbsr/Projects/Shaw_Timothy/3352_Splicing_Pipeline_2021/scripts/src/RSeQC-2.6.4/install/share/apps/python-2.7.9/bin/
+
+ml R/4.1.0-foss-2020b
+
+# Establish starting directory
+cd /share/Lab_Shaw/projects/ICI_CRI_iAtlas/Subset_ssGSEA_coxh_ranking_RED/Output_Skin/
+
+# Assigns an ArrayID to each line (p) in the .sh script, where each line is a seperate shell script
+line=`sed -n "${SLURM_ARRAY_TASK_ID}p" PAN_ICI_Skin_CoxhRuns.sh`
+
+# Each line/shell script of the fastq_srr.sh script if run through here as a seperate but grouped job
+${line}
+

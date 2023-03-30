@@ -1,0 +1,2 @@
+Rscript ssGSEA_coxh_rank_EFS.R AML_TARGET_KMT2A_Fusion_EFS_LINCS_DN_NewName AML_TARGET_KMT2A_fusion_expr.txt AML_TARGET_KMT2A_fusion_meta.txt /LINCS_L1000_gs_HS_DN_v2.RData ../Output
+Rscript ssGSEA_coxh_rank_OS.R AML_TARGET_KMT2A_Fusion_EFS_LINCS_DN_NewName AML_TARGET_KMT2A_fusion_expr.txt AML_TARGET_KMT2A_fusion_meta.txt /LINCS_L1000_gs_HS_DN_v2.RData ../Output

@@ -3,7 +3,7 @@
 
 ProjectName <- "TARGET AML 1031 - KMT2A Fusion(+)"
 
-ExpressionMatrix_file <- "AML_TARGET_KMT2A_fusion_expr.txt"
+ExpressionMatrix_file <- "AML_TARGET_KMT2A_fusion_expr.zip"
 
 MetaData_file <- "AML_TARGET_KMT2A75_meta_BootstrapAnno.txt"
 
