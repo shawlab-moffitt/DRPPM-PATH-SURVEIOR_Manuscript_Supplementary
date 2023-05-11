@@ -1,33 +1,33 @@
-# DRPPM-PATH-SURVEIOR Manuscript Supplementary
+# PATH-SURVEYOR Manuscript Supplementary
 
-To ensure reproducibility, transparency, and accessibility for the work we have done to develop the DRPPM-PATH-SURVEIOR suite of tools, we have arranged this github in tandem with our manuscript that we are working towards publication. Users may explore the code and figures from the use cases we worked on, including the TARGET AML drug screening and identification of immune pathways in melanoma patients. To access the input and output from our analysis, users can use the URL links below. Please note that some files in the Github are zipped, compared to the files found hosted on the external server due to compliance with Github's file size requirements.
+To ensure reproducibility, transparency, and accessibility for the work we have done to develop the PATH-SURVEYOR suite of tools, we have arranged this github in tandem with our manuscript that we are working towards publication. Users may explore the code and figures from the use cases we worked on, including the TARGET AML drug screening and identification of immune pathways in melanoma patients. To access the input and output from our analysis, users can use the URL links below. Please note that some files in the Github are zipped, compared to the files found hosted on the external server due to compliance with Github's file size requirements.
 
-The source and url links to the data below were also added to our existing GitHub page, https://github.com/shawlab-moffitt/DRPPM-PATH-SURVEIOR-Suite. Here you can find up-to-date source code to performe this analysis.
+The source and url links to the data below were also added to our existing GitHub page, https://github.com/shawlab-moffitt/PATH-SURVEYOR-Suite. Here you can find up-to-date source code to performe this analysis.
 
 * For the parent directory of entire analysis please go here:
-  * http://shawlab.science/shiny/DRPPM_PATH_SURVEIOR_ExampleUseCases/
+  * http://shawlab.science/shiny/PATH_SURVEYOR_ExampleUseCases/
 
 # PAN ICI Melanoma Immune Pathway Identification Use Case Example
 
 * Parent directory for this analysis:
-  * http://shawlab.science/shiny/DRPPM_PATH_SURVEIOR_ExampleUseCases/PANICI_Melanoma_UseCase/
-  * https://github.com/shawlab-moffitt/DRPPM-PATH-SURVEIOR_Manuscript_Supplementary/tree/main/PANICI_Melanoma_UseCase
+  * http://shawlab.science/shiny/PATH_SURVEYOR_ExampleUseCases/PANICI_Melanoma_UseCase/
+  * [PANICI_Melanoma_UseCase](https://github.com/shawlab-moffitt/PATH-SURVEYOR_Manuscript_Supplementary/tree/main/PANICI_Melanoma_UseCase)
 
 ## Step 1 - Pipeline mode
 
 * This was used to derive a ranked gene and immune signatures list associated with patient survival
 * Figures 1 and 3A from the manscript provide a visual representation of using the pipeline as well as incorporating it with hazard ratio ranked GSEA
 * The work for this analysis can be found here:
-  * http://shawlab.science/shiny/DRPPM_PATH_SURVEIOR_ExampleUseCases/PANICI_Melanoma_UseCase/Fig3A_Step1_Pipeline_Mode/
-  * https://github.com/shawlab-moffitt/DRPPM-PATH-SURVEIOR_Manuscript_Supplementary/tree/main/PANICI_Melanoma_UseCase/Step1_Pipeline_Mode
+  * http://shawlab.science/shiny/PATH_SURVEYOR_ExampleUseCases/PANICI_Melanoma_UseCase/Fig3A_Step1_Pipeline_Mode/
+  * [PANICI_Melanoma_UseCase/Step1_Pipeline_Mode](https://github.com/shawlab-moffitt/PATH-SURVEYOR_Manuscript_Supplementary/tree/main/PANICI_Melanoma_UseCase/Step1_Pipeline_Mode)
 
 ## Step 2 - Immune Deconvolution
 
 * To examine immune features we derived immune deconvolution scores through Xcell and Cibersort and performed a bivariate survival analysis.
 * Visualization of this analysis can be seen in Figure 4
 * The code used to derive and append the immune deconvolution scores to the patient meta data can be found here:
-  * http://shawlab.science/shiny/DRPPM_PATH_SURVEIOR_ExampleUseCases/PANICI_Melanoma_UseCase/Fig4_Step2_Immune_Deconvolution/
-  * https://github.com/shawlab-moffitt/DRPPM-PATH-SURVEIOR_Manuscript_Supplementary/tree/main/PANICI_Melanoma_UseCase/Step2_Immune_Deconvolution
+  * http://shawlab.science/shiny/PATH_SURVEYOR_ExampleUseCases/PANICI_Melanoma_UseCase/Fig4_Step2_Immune_Deconvolution/
+  * [PANICI_Melanoma_UseCase/Step2_Immune_Deconvolution](hhttps://github.com/shawlab-moffitt/PATH-SURVEYOR_Manuscript_Supplementary/tree/main/PANICI_Melanoma_UseCase/Step2_Immune_Deconvolution)
 
 ## Step 3 - On The Fly Analysis Mode
 
@@ -36,8 +36,8 @@ The source and url links to the data below were also added to our existing GitHu
 * A schematic of the application can be seen in figure 1
 * There are many figures from the manuscript that provide a small visualization of the UI from the application, such as Figures 2C, 4B, 5, S1, and S2B & C.
 * The application is available here:
-  * http://shawlab.science/shiny/DRPPM_PATH_SURVEIOR_ExampleUseCases/PANICI_Melanoma_UseCase/Fig2_FigS1_Step3_On_The_Fly_Analysis_Mode/
-  * https://github.com/shawlab-moffitt/DRPPM-PATH-SURVEIOR_Manuscript_Supplementary/tree/main/PANICI_Melanoma_UseCase/Step3_On_The_Fly_Analysis_Mode/PAN_ICI_Melanoma_Pre_SurvivalApp
+  * http://shawlab.science/shiny/PATH_SURVEYOR_ExampleUseCases/PANICI_Melanoma_UseCase/Fig2_FigS1_Step3_On_The_Fly_Analysis_Mode/
+  * [PANICI_Melanoma_UseCase/Step3_On_The_Fly_Analysis_Mode/PAN_ICI_Melanoma_Pre_SurvivalApp](https://github.com/shawlab-moffitt/PATH-SURVEYOR_Manuscript_Supplementary/tree/main/PANICI_Melanoma_UseCase/Step3_On_The_Fly_Analysis_Mode/PAN_ICI_Melanoma_Pre_SurvivalApp)
 
 ## Step 4 - Hazard Ratio Ranked Gene Set Enrichment Analysis (GSEA)
 
@@ -45,8 +45,8 @@ The source and url links to the data below were also added to our existing GitHu
 * The ranked gene list associated with overall survival data was used.
 * This analysis can be seen in Figures 3 and S2.
 * The code used for this analysis and a ready to use hazard ration ranked GSEA App is available here:
-  * http://shawlab.science/shiny/DRPPM_PATH_SURVEIOR_ExampleUseCases/PANICI_Melanoma_UseCase/Fig3_FigS2_Step4_HazardRatio_Ranked_GSEA/
-  * https://github.com/shawlab-moffitt/DRPPM-PATH-SURVEIOR_Manuscript_Supplementary/tree/main/PANICI_Melanoma_UseCase/Step4_HR_Ranked_GSEA
+  * http://shawlab.science/shiny/PATH_SURVEYOR_ExampleUseCases/PANICI_Melanoma_UseCase/Fig3_FigS2_Step4_HazardRatio_Ranked_GSEA/
+  * [PANICI_Melanoma_UseCase/Step4_HR_Ranked_GSEA](https://github.com/shawlab-moffitt/PATH-SURVEYOR_Manuscript_Supplementary/tree/main/PANICI_Melanoma_UseCase/Step4_HR_Ranked_GSEA)
 
 ## Step 5 - Pathway Connectivivty
 
@@ -54,8 +54,8 @@ The source and url links to the data below were also added to our existing GitHu
 * The connectivity was calculated through Jaccard distance based on overlapping genes between signatures.
 * This analysis can be seen in Figures 5 and S4.
 * The code used for this analysis and a ready to use pathway connectivity app is available here:
-  * http://shawlab.science/shiny/DRPPM_PATH_SURVEIOR_ExampleUseCases/PANICI_Melanoma_UseCase/Fig5_FigS4_Step5_Pathway_Connectivity/
-  * https://github.com/shawlab-moffitt/DRPPM-PATH-SURVEIOR_Manuscript_Supplementary/tree/main/PANICI_Melanoma_UseCase/Step5_Pathway_Connectivity
+  * http://shawlab.science/shiny/PATH_SURVEYOR_ExampleUseCases/PANICI_Melanoma_UseCase/Fig5_FigS4_Step5_Pathway_Connectivity/
+  * [PANICI_Melanoma_UseCase/Step5_Pathway_Connectivity](https://github.com/shawlab-moffitt/PATH-SURVEYOR_Manuscript_Supplementary/tree/main/PANICI_Melanoma_UseCase/Step5_Pathway_Connectivity)
 
 # TARGET AML 1031 Drug Discovery Use Case Example
 
@@ -66,7 +66,7 @@ The source and url links to the data below were also added to our existing GitHu
 ## Interactive DRPPM-PATH-SURVEIOR R Shiny App featuring the TARGET AML 1031 data
 
 * An interactive Shiny app that was used to generate a majority of the figures for this use case can be found here:
-  * http://shawlab.science/shiny/DRPPM_PATH_SURVEIOR_ExampleUseCases/TARGET_AML_UseCase/TARGET_AML_KMT2A_SurvivalApp/
+  * http://shawlab.science/shiny/PATH_SURVEYOR_ExampleUseCases/TARGET_AML_UseCase/
 
 ## Step 1 - DRPPM PATH SURVEIOR Pipeline
 
@@ -74,8 +74,8 @@ The source and url links to the data below were also added to our existing GitHu
 * This was performed through the pipeline visualized the schematic seen in Figure 1 and S5.
 * Two of the top hits from this pipeline as well as a summary of enriched Cmap names and mechanisms of action (MOAs) can be seen in Figure 6.
 * The code for the analysis can be found here:
-  * http://shawlab.science/shiny/DRPPM_PATH_SURVEIOR_ExampleUseCases/TARGET_AML_UseCase/Fig6_Step1_DRPPM_PATH_SURVEIOR_Pipeline/
-  * https://github.com/shawlab-moffitt/DRPPM-PATH-SURVEIOR_Manuscript_Supplementary/tree/main/TARGET_AML_UseCase/Step1_DRPPM_PATH_SURVEIOR_Pipeline
+  * http://shawlab.science/shiny/PATH_SURVEYOR_ExampleUseCases/TARGET_AML_UseCase/Fig6_Step1_PATH_SURVEYOR_Pipeline/
+  * (https://github.com/shawlab-moffitt/PATH-SURVEYOR_Manuscript_Supplementary/tree/main/TARGET_AML_UseCase/Step1_DRPPM_PATH_SURVEIOR_Pipeline)
 
 ## Step 2 - Subset data for bootstrap analysis
 
