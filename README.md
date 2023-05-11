@@ -11,7 +11,7 @@ The source and url links to the data below were also added to our existing GitHu
 
 * Parent directory for this analysis:
   * http://shawlab.science/shiny/PATH_SURVEYOR_ExampleUseCases/PANICI_Melanoma_UseCase/
-  * [PANICI_Melanoma_UseCase](https://github.com/shawlab-moffitt/PATH-SURVEYOR_Manuscript_Supplementary/tree/main/PANICI_Melanoma_UseCase)
+  * GitHub Directory: [PANICI_Melanoma_UseCase](https://github.com/shawlab-moffitt/PATH-SURVEYOR_Manuscript_Supplementary/tree/main/PANICI_Melanoma_UseCase)
 
 ## Step 1 - PATH SURVEYOR Pipeline mode
 
@@ -19,7 +19,7 @@ The source and url links to the data below were also added to our existing GitHu
 * Figures 1 and 3A from the manscript provide a visual representation of using the pipeline as well as incorporating it with hazard ratio ranked GSEA
 * The work for this analysis can be found here:
   * http://shawlab.science/shiny/PATH_SURVEYOR_ExampleUseCases/PANICI_Melanoma_UseCase/Fig3A_Step1_Pipeline_Mode/
-  * [PANICI_Melanoma_UseCase/Step1_Pipeline_Mode](https://github.com/shawlab-moffitt/PATH-SURVEYOR_Manuscript_Supplementary/tree/main/PANICI_Melanoma_UseCase/Step1_Pipeline_Mode)
+  * GitHub Directory: [PANICI_Melanoma_UseCase/Step1_Pipeline_Mode](https://github.com/shawlab-moffitt/PATH-SURVEYOR_Manuscript_Supplementary/tree/main/PANICI_Melanoma_UseCase/Step1_Pipeline_Mode)
 
 ## Step 2 - Immune Deconvolution
 
@@ -27,7 +27,7 @@ The source and url links to the data below were also added to our existing GitHu
 * Visualization of this analysis can be seen in Figure 4
 * The code used to derive and append the immune deconvolution scores to the patient meta data can be found here:
   * http://shawlab.science/shiny/PATH_SURVEYOR_ExampleUseCases/PANICI_Melanoma_UseCase/Fig4_Step2_Immune_Deconvolution/
-  * [PANICI_Melanoma_UseCase/Step2_Immune_Deconvolution](hhttps://github.com/shawlab-moffitt/PATH-SURVEYOR_Manuscript_Supplementary/tree/main/PANICI_Melanoma_UseCase/Step2_Immune_Deconvolution)
+  * GitHub Directory: [PANICI_Melanoma_UseCase/Step2_Immune_Deconvolution](hhttps://github.com/shawlab-moffitt/PATH-SURVEYOR_Manuscript_Supplementary/tree/main/PANICI_Melanoma_UseCase/Step2_Immune_Deconvolution)
 
 ## Step 3 - PATH SURVEYOR On The Fly Analysis Mode - Interactive R Shiny App
 
@@ -37,7 +37,7 @@ The source and url links to the data below were also added to our existing GitHu
 * There are many figures from the manuscript that provide a small visualization of the UI from the application, such as Figures 2C, 4B, 5, S1, and S2B & C.
 * The application is available here:
   * http://shawlab.science/shiny/PATH_SURVEYOR_ExampleUseCases/PANICI_Melanoma_UseCase/Fig2_FigS1_Step3_On_The_Fly_Analysis_Mode/
-  * [PANICI_Melanoma_UseCase/Step3_On_The_Fly_Analysis_Mode/PAN_ICI_Melanoma_Pre_SurvivalApp](https://github.com/shawlab-moffitt/PATH-SURVEYOR_Manuscript_Supplementary/tree/main/PANICI_Melanoma_UseCase/Step3_On_The_Fly_Analysis_Mode/PAN_ICI_Melanoma_Pre_SurvivalApp)
+  * GitHub Directory: [PANICI_Melanoma_UseCase/Step3_On_The_Fly_Analysis_Mode/PAN_ICI_Melanoma_Pre_SurvivalApp](https://github.com/shawlab-moffitt/PATH-SURVEYOR_Manuscript_Supplementary/tree/main/PANICI_Melanoma_UseCase/Step3_On_The_Fly_Analysis_Mode/PAN_ICI_Melanoma_Pre_SurvivalApp)
 
 ## Step 4 - Hazard Ratio Ranked Gene Set Enrichment Analysis (GSEA)
 
@@ -46,7 +46,7 @@ The source and url links to the data below were also added to our existing GitHu
 * This analysis can be seen in Figures 3 and S2.
 * The code used for this analysis and a ready to use hazard ration ranked GSEA App is available here:
   * http://shawlab.science/shiny/PATH_SURVEYOR_ExampleUseCases/PANICI_Melanoma_UseCase/Fig3_FigS2_Step4_HazardRatio_Ranked_GSEA/
-  * [PANICI_Melanoma_UseCase/Step4_HR_Ranked_GSEA](https://github.com/shawlab-moffitt/PATH-SURVEYOR_Manuscript_Supplementary/tree/main/PANICI_Melanoma_UseCase/Step4_HR_Ranked_GSEA)
+  * GitHub Directory: [PANICI_Melanoma_UseCase/Step4_HR_Ranked_GSEA](https://github.com/shawlab-moffitt/PATH-SURVEYOR_Manuscript_Supplementary/tree/main/PANICI_Melanoma_UseCase/Step4_HR_Ranked_GSEA)
 
 ## Step 5 - Pathway Connectivivty
 
@@ -55,20 +55,20 @@ The source and url links to the data below were also added to our existing GitHu
 * This analysis can be seen in Figures 5 and S4.
 * The code used for this analysis and a ready to use pathway connectivity app is available here:
   * http://shawlab.science/shiny/PATH_SURVEYOR_ExampleUseCases/PANICI_Melanoma_UseCase/Fig5_FigS4_Step5_Pathway_Connectivity/
-  * [PANICI_Melanoma_UseCase/Step5_Pathway_Connectivity](https://github.com/shawlab-moffitt/PATH-SURVEYOR_Manuscript_Supplementary/tree/main/PANICI_Melanoma_UseCase/Step5_Pathway_Connectivity)
+  * GitHub Directory: [PANICI_Melanoma_UseCase/Step5_Pathway_Connectivity](https://github.com/shawlab-moffitt/PATH-SURVEYOR_Manuscript_Supplementary/tree/main/PANICI_Melanoma_UseCase/Step5_Pathway_Connectivity)
 
 # TARGET AML 1031 Drug Discovery Use Case Example
 
 * Parent directory for this analysis:
   * http://shawlab.science/shiny/PATH_SURVEYOR_ExampleUseCases/TARGET_AML_UseCase/
-  * [TARGET_AML_UseCase](https://github.com/shawlab-moffitt/PATH-SURVEYOR_Manuscript_Supplementary/tree/main/TARGET_AML_UseCase)
+  * GitHub Directory: [TARGET_AML_UseCase](https://github.com/shawlab-moffitt/PATH-SURVEYOR_Manuscript_Supplementary/tree/main/TARGET_AML_UseCase)
 
 ## Interactive PATH SURVEYOR R Shiny App featuring the TARGET AML 1031 data
 
 * An interactive Shiny app that was used to generate a majority of the figures for this use case can be found here:
   * https://shawlab-moffitt.shinyapps.io/path_surveyor_preloaded_example_aml/
   * http://shawlab.science/shiny/PATH_SURVEYOR_ExampleUseCases/TARGET_AML_UseCase/TARGET_AML_KMT2A_SurvivalApp/
-  * [TARGET_AML_UseCase/TARGET_AML_KMT2A_SurvivalApp](https://github.com/shawlab-moffitt/PATH-SURVEYOR_Manuscript_Supplementary/tree/main/TARGET_AML_UseCase/TARGET_AML_KMT2A_SurvivalApp)
+  * GitHub Directory: [TARGET_AML_UseCase/TARGET_AML_KMT2A_SurvivalApp](https://github.com/shawlab-moffitt/PATH-SURVEYOR_Manuscript_Supplementary/tree/main/TARGET_AML_UseCase/TARGET_AML_KMT2A_SurvivalApp)
 
 ## Step 1 - PATH SURVEYOR Pipeline
 
@@ -77,7 +77,7 @@ The source and url links to the data below were also added to our existing GitHu
 * Two of the top hits from this pipeline as well as a summary of enriched Cmap names and mechanisms of action (MOAs) can be seen in Figure 6.
 * The code for the analysis can be found here:
   * hhttp://shawlab.science/shiny/PATH_SURVEYOR_ExampleUseCases/TARGET_AML_UseCase/Fig6_Step1_PATH_SURVEYOR_Pipeline/
-  * [TARGET_AML_UseCase/Step1_PATH_SURVEYOR_Pipeline](https://github.com/shawlab-moffitt/PATH-SURVEYOR_Manuscript_Supplementary/tree/main/TARGET_AML_UseCase/Step1_PATH_SURVEYOR_Pipeline)
+  * GitHub Directory: [TARGET_AML_UseCase/Step1_PATH_SURVEYOR_Pipeline](https://github.com/shawlab-moffitt/PATH-SURVEYOR_Manuscript_Supplementary/tree/main/TARGET_AML_UseCase/Step1_PATH_SURVEYOR_Pipeline)
 
 ## Step 2 - Subset data for bootstrap analysis
 
@@ -85,7 +85,7 @@ The source and url links to the data below were also added to our existing GitHu
 * The figure depicting the results we derived from this analysis can be seen in Figure S6.
 * The code for the resampling can be found here:
   * http://shawlab.science/shiny/PATH_SURVEYOR_ExampleUseCases/TARGET_AML_UseCase/FigS6_Step2_Subset_Data_For_Bootstrap/
-  * [TARGET_AML_UseCase/Step2_Subset_Data_For_Bootstrap](https://github.com/shawlab-moffitt/PATH-SURVEYOR_Manuscript_Supplementary/tree/main/TARGET_AML_UseCase/Step2_Subset_Data_For_Bootstrap)
+  * GitHub Directory: [TARGET_AML_UseCase/Step2_Subset_Data_For_Bootstrap](https://github.com/shawlab-moffitt/PATH-SURVEYOR_Manuscript_Supplementary/tree/main/TARGET_AML_UseCase/Step2_Subset_Data_For_Bootstrap)
 
 ## Step 3 - PATH SURVEYOR Pipeline of 75% Bootstrap patient cohort
 
@@ -102,7 +102,7 @@ The source and url links to the data below were also added to our existing GitHu
 * This step was used in producing Figures 6 and S6.
 * Code for this analysis can be found here:
   * http://shawlab.science/shiny/PATH_SURVEYOR_ExampleUseCases/TARGET_AML_UseCase/Fig6_FigS6_Step4_LINCSL1000_Drug_Prioritization/
-   * [TARGET_AML_UseCase/Step4_LINCSL1000_Drug_Prioritization](https://github.com/shawlab-moffitt/PATH-SURVEYOR_Manuscript_Supplementary/tree/main/TARGET_AML_UseCase/Step4_LINCSL1000_Drug_Prioritization)
+  * GitHub Directory: [TARGET_AML_UseCase/Step4_LINCSL1000_Drug_Prioritization](https://github.com/shawlab-moffitt/PATH-SURVEYOR_Manuscript_Supplementary/tree/main/TARGET_AML_UseCase/Step4_LINCSL1000_Drug_Prioritization)
 
 
 
