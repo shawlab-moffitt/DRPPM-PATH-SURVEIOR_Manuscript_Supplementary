@@ -93,7 +93,7 @@ The source and url links to the data below were also added to our existing GitHu
 * The figure depicting the results we derived from this analysis can be seen in Figure S6.
 * The code for the resampling can be found here:
   * http://shawlab.science/shiny/PATH_SURVEYOR_ExampleUseCases/TARGET_AML_UseCase/FigS6_Step3_PATH_SURVEYOR_Pipeline_Bootstrap/
-  * [TARGET_AML_UseCase/Step3_PATH_SURVEYOR_Pipeline_Bootstrap](https://github.com/shawlab-moffitt/PATH-SURVEYOR_Manuscript_Supplementary/tree/main/TARGET_AML_UseCase/Step3_PATH_SURVEYOR_Pipeline_Bootstrap)
+  * GitHub Directory: [TARGET_AML_UseCase/Step3_PATH_SURVEYOR_Pipeline_Bootstrap](https://github.com/shawlab-moffitt/PATH-SURVEYOR_Manuscript_Supplementary/tree/main/TARGET_AML_UseCase/Step3_PATH_SURVEYOR_Pipeline_Bootstrap)
 
 ## Step 4 - LINCS L1000 Drug Prioritization
 
