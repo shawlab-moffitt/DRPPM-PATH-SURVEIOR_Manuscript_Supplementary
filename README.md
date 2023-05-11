@@ -13,7 +13,7 @@ The source and url links to the data below were also added to our existing GitHu
   * http://shawlab.science/shiny/PATH_SURVEYOR_ExampleUseCases/PANICI_Melanoma_UseCase/
   * [PANICI_Melanoma_UseCase](https://github.com/shawlab-moffitt/PATH-SURVEYOR_Manuscript_Supplementary/tree/main/PANICI_Melanoma_UseCase)
 
-## Step 1 - Pipeline mode
+## Step 1 - PATH SURVEYOR Pipeline mode
 
 * This was used to derive a ranked gene and immune signatures list associated with patient survival
 * Figures 1 and 3A from the manscript provide a visual representation of using the pipeline as well as incorporating it with hazard ratio ranked GSEA
@@ -29,7 +29,7 @@ The source and url links to the data below were also added to our existing GitHu
   * http://shawlab.science/shiny/PATH_SURVEYOR_ExampleUseCases/PANICI_Melanoma_UseCase/Fig4_Step2_Immune_Deconvolution/
   * [PANICI_Melanoma_UseCase/Step2_Immune_Deconvolution](hhttps://github.com/shawlab-moffitt/PATH-SURVEYOR_Manuscript_Supplementary/tree/main/PANICI_Melanoma_UseCase/Step2_Immune_Deconvolution)
 
-## Step 3 - On The Fly Analysis Mode
+## Step 3 - PATH SURVEYOR On The Fly Analysis Mode - Interactive R Shiny App
 
 * This is the app used to generate the figures and perform much of the visualization and real time analysis for the manuscript.
 * Here we host a live version of the R Shiny application for users to interact with.
@@ -60,38 +60,40 @@ The source and url links to the data below were also added to our existing GitHu
 # TARGET AML 1031 Drug Discovery Use Case Example
 
 * Parent directory for this analysis:
-  * http://shawlab.science/shiny/DRPPM_PATH_SURVEIOR_ExampleUseCases/TARGET_AML_UseCase/
-  * https://github.com/shawlab-moffitt/DRPPM-PATH-SURVEIOR_Manuscript_Supplementary/tree/main/TARGET_AML_UseCase
+  * http://shawlab.science/shiny/PATH_SURVEYOR_ExampleUseCases/TARGET_AML_UseCase/
+  * [TARGET_AML_UseCase](https://github.com/shawlab-moffitt/PATH-SURVEYOR_Manuscript_Supplementary/tree/main/TARGET_AML_UseCase)
 
-## Interactive DRPPM-PATH-SURVEIOR R Shiny App featuring the TARGET AML 1031 data
+## Interactive PATH SURVEYOR R Shiny App featuring the TARGET AML 1031 data
 
 * An interactive Shiny app that was used to generate a majority of the figures for this use case can be found here:
-  * http://shawlab.science/shiny/PATH_SURVEYOR_ExampleUseCases/TARGET_AML_UseCase/
+  * https://shawlab-moffitt.shinyapps.io/path_surveyor_preloaded_example_aml/
+  * http://shawlab.science/shiny/PATH_SURVEYOR_ExampleUseCases/TARGET_AML_UseCase/TARGET_AML_KMT2A_SurvivalApp/
+  * [TARGET_AML_UseCase/TARGET_AML_KMT2A_SurvivalApp](https://github.com/shawlab-moffitt/PATH-SURVEYOR_Manuscript_Supplementary/tree/main/TARGET_AML_UseCase/TARGET_AML_KMT2A_SurvivalApp)
 
-## Step 1 - DRPPM PATH SURVEIOR Pipeline
+## Step 1 - PATH SURVEYOR Pipeline
 
 * A systematic drug screening was performed using LINCS L1000 drug induced downregulated genes based on the gene reversion strategy.
 * This was performed through the pipeline visualized the schematic seen in Figure 1 and S5.
 * Two of the top hits from this pipeline as well as a summary of enriched Cmap names and mechanisms of action (MOAs) can be seen in Figure 6.
 * The code for the analysis can be found here:
-  * http://shawlab.science/shiny/PATH_SURVEYOR_ExampleUseCases/TARGET_AML_UseCase/Fig6_Step1_PATH_SURVEYOR_Pipeline/
-  * (https://github.com/shawlab-moffitt/PATH-SURVEYOR_Manuscript_Supplementary/tree/main/TARGET_AML_UseCase/Step1_DRPPM_PATH_SURVEIOR_Pipeline)
+  * hhttp://shawlab.science/shiny/PATH_SURVEYOR_ExampleUseCases/TARGET_AML_UseCase/Fig6_Step1_PATH_SURVEYOR_Pipeline/
+  * [TARGET_AML_UseCase/Step1_PATH_SURVEYOR_Pipeline](https://github.com/shawlab-moffitt/PATH-SURVEYOR_Manuscript_Supplementary/tree/main/TARGET_AML_UseCase/Step1_PATH_SURVEYOR_Pipeline)
 
 ## Step 2 - Subset data for bootstrap analysis
 
 * To examine the robustness of our results we performed a resampling bootstrap of 75% of the patient cohort and reperformed the analysis.
 * The figure depicting the results we derived from this analysis can be seen in Figure S6.
 * The code for the resampling can be found here:
-  * http://shawlab.science/shiny/DRPPM_PATH_SURVEIOR_ExampleUseCases/TARGET_AML_UseCase/FigS6_Step2_Subset_Data_For_Bootstrap/
-  * https://github.com/shawlab-moffitt/DRPPM-PATH-SURVEIOR_Manuscript_Supplementary/tree/main/TARGET_AML_UseCase/Step2_Subset_Data_For_Bootstrap
+  * http://shawlab.science/shiny/PATH_SURVEYOR_ExampleUseCases/TARGET_AML_UseCase/FigS6_Step2_Subset_Data_For_Bootstrap/
+  * [TARGET_AML_UseCase/Step2_Subset_Data_For_Bootstrap](https://github.com/shawlab-moffitt/PATH-SURVEYOR_Manuscript_Supplementary/tree/main/TARGET_AML_UseCase/Step2_Subset_Data_For_Bootstrap)
 
-## Step 3 - DRPPM PATH SURVEIOR Pipeline of 75% Bootstrap patient cohort
+## Step 3 - PATH SURVEYOR Pipeline of 75% Bootstrap patient cohort
 
 * A systematic drug screening using the resampled 75% AML KMT2A-fusion positive patients was performed using the same pipeline that was used in step 1 for this cohort.
 * The figure depicting the results we derived from this analysis can be seen in Figure S6.
 * The code for the resampling can be found here:
-  * http://shawlab.science/shiny/DRPPM_PATH_SURVEIOR_ExampleUseCases/TARGET_AML_UseCase/FigS6_Step3_DRPPM_PATH_SURVEIOR_Pipeline_Bootstrap/
-  * https://github.com/shawlab-moffitt/DRPPM-PATH-SURVEIOR_Manuscript_Supplementary/tree/main/TARGET_AML_UseCase/Step3_DRPPM_PATH_SURVEIOR_Pipeline_Bootstrap
+  * http://shawlab.science/shiny/PATH_SURVEYOR_ExampleUseCases/TARGET_AML_UseCase/FigS6_Step3_PATH_SURVEYOR_Pipeline_Bootstrap/
+  * [TARGET_AML_UseCase/Step3_PATH_SURVEYOR_Pipeline_Bootstrap](https://github.com/shawlab-moffitt/PATH-SURVEYOR_Manuscript_Supplementary/tree/main/TARGET_AML_UseCase/Step3_PATH_SURVEYOR_Pipeline_Bootstrap)
 
 ## Step 4 - LINCS L1000 Drug Prioritization
 
@@ -99,8 +101,8 @@ The source and url links to the data below were also added to our existing GitHu
 * The prioritization of the bootstrap analysis also allowed us to validat and visualiza the robustness of our results.
 * This step was used in producing Figures 6 and S6.
 * Code for this analysis can be found here:
-  * http://shawlab.science/shiny/DRPPM_PATH_SURVEIOR_ExampleUseCases/TARGET_AML_UseCase/Fig6_FigS6_Step4_LINCSL1000_Drug_Prioritization/
-  * https://github.com/shawlab-moffitt/DRPPM-PATH-SURVEIOR_Manuscript_Supplementary/tree/main/TARGET_AML_UseCase/Step4_LINCSL1000_Drug_Prioritization
+  * http://shawlab.science/shiny/PATH_SURVEYOR_ExampleUseCases/TARGET_AML_UseCase/Fig6_FigS6_Step4_LINCSL1000_Drug_Prioritization/
+   * [TARGET_AML_UseCase/Step4_LINCSL1000_Drug_Prioritization](https://github.com/shawlab-moffitt/PATH-SURVEYOR_Manuscript_Supplementary/tree/main/TARGET_AML_UseCase/Step4_LINCSL1000_Drug_Prioritization)
 
 
 
