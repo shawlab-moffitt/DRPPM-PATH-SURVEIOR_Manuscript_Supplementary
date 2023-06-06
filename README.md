@@ -13,6 +13,13 @@ The source and url links to the data below were also added to our existing GitHu
   * http://shawlab.science/shiny/PATH_SURVEYOR_ExampleUseCases/PANICI_Melanoma_UseCase/
   * GitHub Directory: [PANICI_Melanoma_UseCase](https://github.com/shawlab-moffitt/PATH-SURVEYOR_Manuscript_Supplementary/tree/main/PANICI_Melanoma_UseCase)
 
+## Interactive PATH SURVEYOR R Shiny App featuring the PAN ICI iAtlaas Melanoma data
+
+* An interactive Shiny app that was used to generate a majority of the figures for this use case can be found here:
+  * https://shawlab-moffitt.shinyapps.io/pathway_connectivity_preloaded_example_melanomaici/
+  * http://shawlab.science/shiny/PATH_SURVEYOR_ExampleUseCases/PANICI_Melanoma_UseCase/Fig2_FigS1_Step3_On_The_Fly_Analysis_Mode/PAN_ICI_Melanoma_Pre_SurvivalApp/
+  * GitHub Directory: [PANICI_Melanoma_UseCase/Step3_On_The_Fly_Analysis_Mode/PAN_ICI_Melanoma_Pre_SurvivalApp](https://github.com/shawlab-moffitt/PATH-SURVEYOR_Manuscript_Supplementary/tree/main/PANICI_Melanoma_UseCase/Step3_On_The_Fly_Analysis_Mode/PAN_ICI_Melanoma_Pre_SurvivalApp)
+
 ## Step 1 - PATH SURVEYOR Pipeline mode
 
 * This was used to derive a ranked gene and immune signatures list associated with patient survival
