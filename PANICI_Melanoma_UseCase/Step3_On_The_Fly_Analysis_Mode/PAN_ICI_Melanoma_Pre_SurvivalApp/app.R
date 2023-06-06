@@ -3,7 +3,7 @@
 
 ProjectName <- "PAN ICI Melanoma - Pre Treatment"
 
-ExpressionMatrix_file <- "PANICI_Skin_Pre_Expression.zip"
+ExpressionMatrix_file <- "PANICI_Skin_Pre_Expression.txt"
 
 MetaData_file <- "PANICI_Melanoma_PreTreatment_Meta_ImmDeconv.txt"
 
@@ -26,6 +26,9 @@ PreSelect_Feature <- "all"
 PreSelect_SubFeature <- NULL
 PreSelect_SecondaryFeature <- "Responder"
 
+##--Advanced Setup--##
+SurvPlot_Height <- "550px"
+SurvPlot_Width <- "850px"
 
 
 
@@ -39,43 +42,43 @@ immudecon_check <- immudecon %in% rownames(installed.packages())
 if (immudecon_check == TRUE) {
   library(immunedeconv)
 }
-packages <- c("shiny","shinythemes","shinyjqui","gtsummary","tidyr","RColorBrewer",
+packages <- c("shiny","shinyjqui","gtsummary","tidyr","RColorBrewer",
               "dplyr","DT","ggplot2","ggpubr","tibble","survival","pheatmap","stringr",
               "readr","shinycssloaders","survminer","gridExtra","viridis","plotly","ggrepel")
 
 installed_packages <- packages %in% rownames(installed.packages())
-if (any(installed_packages == FALSE)) {
-  install.packages(packages[!installed_packages])
-}
+#if (any(installed_packages == FALSE)) {
+#  install.packages(packages[!installed_packages])
+#}
 invisible(lapply(packages, library, character.only = TRUE))
 #bioconductor packages
 bioCpacks <- c("GSVA")
 installed_packages_BIOC <- bioCpacks %in% rownames(installed.packages())
-if (any(installed_packages_BIOC == FALSE)) {
-  BiocManager::install(bioCpacks[!installed_packages_BIOC], ask = F)
-}
+#if (any(installed_packages_BIOC == FALSE)) {
+#  BiocManager::install(bioCpacks[!installed_packages_BIOC], ask = F)
+#}
 invisible(lapply(bioCpacks, library, character.only = TRUE))
-
-
 
 
 
 ####----Read In Files----####
 
 ##--Meta--##
-meta <- as.data.frame(read_delim(MetaData_file,delim = '\t', col_names = T))
+meta <- as.data.frame(readr::read_delim(MetaData_file,delim = '\t', col_names = T))
+NAmetaCols <- colnames(meta[,colSums(is.na(meta))==nrow(meta)])
+meta <- meta[,colSums(is.na(meta))<nrow(meta)]
 
 ##--Meta Param--##
-MetaParam <- as.data.frame(read_delim(MetaParam_File,delim = '\t',col_names = F))
-MetaParam[,2] <- gsub(" ","",MetaParam[,2])
+MetaParam <- as.data.frame(readr::read_delim(MetaParam_File,delim = '\t',col_names = F))
+MetaParam <- MetaParam[which(!MetaParam[,1] %in% NAmetaCols),]
+MetaParam <- as.data.frame(apply(MetaParam,2,trimws))
+MetaParam <- MetaParam[which(!MetaParam[,1] %in% NAmetaCols),]
 ## Subset meta columns by category
 metacol_samplenames <- MetaParam[which(MetaParam[,2] == "SampleName"),1]
 metacol_feature <- MetaParam[which(MetaParam[,2] == "Feature"),1]
-metacol_description <- MetaParam[which(MetaParam[,2] == "Description"),1]
 if (("SampleType" %in% MetaParam[,2]) == TRUE) {
   metacol_sampletype <- MetaParam[which(MetaParam[,2] == "SampleType"),1]
-}
-if (("SampleType" %in% MetaParam[,2]) == FALSE) {
+} else {
   metacol_sampletype <- NULL
 }
 ## Get surv time and ID columns - move OS to the front of the list
@@ -91,7 +94,7 @@ meta[,1] <- gsub("[[:punct:]]","_",meta[,1])
 
 
 ##--Expression--##
-expr <- as.data.frame(read_delim(ExpressionMatrix_file,delim = '\t', col_names = T))
+expr <- as.data.frame(readr::read_delim(ExpressionMatrix_file,delim = '\t', col_names = T))
 expr <- expr %>% 
   mutate(across(where(is.character), str_trim))
 colnames(expr)[1] <- "Symbol"
@@ -130,7 +133,7 @@ GeneGS_table <- data.frame(Genes = exprGenes)
 if (exists("GeneSetTable_File") == TRUE) {
   if (file.exists(GeneSetTable_File) == TRUE) {
     
-    GeneSetTable_og <- as.data.frame(read_delim(GeneSetTable_File, delim = '\t', col_names = T))
+    GeneSetTable_og <- as.data.frame(readr::read_delim(GeneSetTable_File, delim = '\t', col_names = T))
     gsTab = TRUE
     
   }
@@ -156,12 +159,13 @@ if (exists("GeneSetTable_File") == FALSE) {
 # An option from the meta, All, or NULL
 if (is.null(PreSelect_SamplyType) == FALSE) {
   if (grepl("all",PreSelect_SamplyType, ignore.case = T) == TRUE) {
-    PreSelect_SamplyType <- "All_Sample_Types"
+    PreSelect_SamplyType <- "Show All Sample Types"
   }
 }
 if (is.null(PreSelect_Feature) == FALSE) {
   if (grepl("all",PreSelect_Feature, ignore.case = T) == TRUE) {
-    PreSelect_Feature <- "All_Features"
+    #PreSelect_Feature <- "Show All Samples"
+    PreSelect_Feature <- "Show All Samples"
   }
 }
 
@@ -523,6 +527,982 @@ metacol_feature <- c(metacol_feature_noPreProcessedScore,decon_score_cols)
 colnames(meta) <- gsub("_PreProcessedScore","",colnames(meta))
 
 
+####----UI----####
+
+ui <-
+  navbarPage(paste("{ ",ProjectName," Survival Analysis }",sep = ""),
+             
+             ####----Overall Survival Tab----####
+             
+             tabPanel("Survival Analysis",
+                      fluidPage(
+                        sidebarLayout(
+                          
+                          ####----Sidebar Panel----####
+                          
+                          sidebarPanel(
+                            conditionalPanel(condition = "input.SurvPanels == '1' | input.SurvPanels == '2' | input.SurvPanels == '3' | input.SurvPanels == '4'",
+                                             tabsetPanel(
+                                               id = "survside",
+                                               
+                                               ##--Sample Parameters--##
+                                               
+                                               tabPanel("Sample Parameters",
+                                                        p(),
+                                                        uiOutput("rendSampleTypeSelection"),
+                                                        #fluidRow(
+                                                        #column(9,
+                                                        uiOutput("rendFeatureSelection"),
+                                                        uiOutput("rendSubFeatureSelection"),
+                                                        #),
+                                                        #column(3,
+                                                        #       checkboxInput("MainFeatContCheck","Continuous",value = F)
+                                                        #)
+                                                        #),
+                                                        uiOutput("rendNumContWarning"),
+                                                        #uiOutput("rendFeatureSelection"),
+                                                        #uiOutput("rendSubFeatureSelection"),
+                                                        fluidRow(
+                                                          column(4,
+                                                                 uiOutput("rendSurvivalType_time")
+                                                          ),
+                                                          column(4,
+                                                                 uiOutput("rendSurvivalType_id")
+                                                          ),
+                                                          column(4,
+                                                                 uiOutput("rendScoreMethodBox")
+                                                          )
+                                                        ),
+                                                        #uiOutput("rendScoreMethodBox"),
+                                                        tabsetPanel(
+                                                          id = "GeneSetTabs",
+                                                          tabPanel("Gene Sets",
+                                                                   p(),
+                                                                   uiOutput("rendGeneSetCat_Select"),
+                                                                   uiOutput("rendGeneSetTable"),
+                                                                   value = 1
+                                                          ),
+                                                          tabPanel("Single Genes",
+                                                                   #radioButtons("RawOrSS","Survival Analysis By:",
+                                                                   #             choices = c("Raw Gene Expression","Rank Normalized"),
+                                                                   #             selected = "Raw Gene Expression", inline = T),
+                                                                   uiOutput("rendGeneGeneSetTable"),
+                                                                   value = 2
+                                                          ),
+                                                          tabPanel("User Gene Set",
+                                                                   p(),
+                                                                   radioButtons("UserGSoption","",choices = c("Gene Set Upload","Text Box Input"), inline = T),
+                                                                   uiOutput("renduserGeneSet"),
+                                                                   uiOutput("renduserGeneSetTextName"),
+                                                                   uiOutput("renduserGeneSetText"),
+                                                                   uiOutput("rendUserGeneSetTable"),
+                                                                   value = 3
+                                                          )
+                                                        ),
+                                                        uiOutput("rendViewGeneSetGenes"),
+                                                        uiOutput("rendGenesInGeneSetTab")
+                                               ),
+                                               
+                                               ##--Survival Parameters--##
+                                               
+                                               tabPanel("Risk Strat Parameters",
+                                                        p(),
+                                                        h4("Risk Stratification Plot Parameters"),
+                                                        fluidRow(
+                                                          column(6,
+                                                                 numericInput("cutoffTime1","High-Risk Survival Time Cutoff:", value = 364, min = 0, step = 1),
+                                                                 selectInput("survStatus1","Survival Status Below Cutoff:", choices = c("1","0","0/1"), selected = "1")
+                                                          ),
+                                                          column(6,
+                                                                 numericInput("cutoffTime0","Low-Risk Survival Time Cutoff:", value = 365, min = 0, step = 1),
+                                                                 selectInput("survStatus0","Survival Status Above Cutoff:", choices = c("1","0","0/1"), selected = "0")
+                                                          )
+                                                        )
+                                               ),
+                                               
+                                               ##--Figure Parameters--##
+                                               
+                                               tabPanel("Figure Parameters",
+                                                        p(),
+                                                        h4("Survival Plot Parameters"),
+                                                        fluidRow(
+                                                          column(4,
+                                                                 uiOutput("rendSurvXaxis")
+                                                          ),
+                                                          column(8,
+                                                                 uiOutput("rendSurvPlotTitle")
+                                                          )
+                                                        ),
+                                                        fluidRow(
+                                                          column(3,
+                                                                 selectInput("SurvLegendPos","Legend Position",choices = c("right","left","top","bottom","none"))
+                                                          ),
+                                                          column(3,
+                                                                 checkboxInput("ShowPval","Show P.Value",value = T)
+                                                          ),
+                                                          column(3,
+                                                                 checkboxInput("ShowConfInt","Show Confidence Interval",value = F)
+                                                          ),
+                                                          column(3,
+                                                                 checkboxInput("ShowMedSurvLine","Show Median Survival Line",value = F)
+                                                          )
+                                                        ),
+                                                        shiny::hr(),
+                                                        h4("Boxplot Parameters"),
+                                                        fluidRow(
+                                                          column(6,
+                                                                 numericInput("boxplotFont","Boxplot Font Size:", value = 15, step = 1),
+                                                                 selectInput("boxoptselec","Boxplot Stat Compare Method:", choices = c("none","wilcox.test","t.test","kruskal.test","anova")) 
+                                                          ),
+                                                          column(6,
+                                                                 numericInput("boxplotDot", "Boxplot Dot Size:", value = 0.75, step = 0.25),
+                                                                 selectInput("boxplotTextAngle","X-Axis Text Orientation",
+                                                                             choices = c("Horizontal (0 degrees)" = "0","Angled (45 degrees)" = "45","Vertical (90 degrees)" = "90","Stagger"))
+                                                          )
+                                                        ),
+                                                        shiny::hr(),
+                                                        h4("Heatmap Parameters"),
+                                                        selectInput("ClusterMethod", "Select Cluster Method",
+                                                                    choices = c("complete", "ward.D", "ward.D2", "single", "average", "mcquitty", "median", "centroid")),
+                                                        fluidRow(
+                                                          column(6,
+                                                                 numericInput("heatmapFontR", "Heatmap Row Font Size:", value = 9, step = 1)
+                                                          ),
+                                                          column(6,
+                                                                 numericInput("heatmapFontC", "Heatmap Column Font Size:", value = 10, step = 1)
+                                                          )
+                                                        ),
+                                                        selectInput("ColorPaletteHeat", "Select Color Palette:",
+                                                                    choices = c("Red/Blue" = "original",
+                                                                                "OmniBlueRed" = "OmniBlueRed",
+                                                                                "LightBlue/BlackRed" = "LightBlueBlackRed",
+                                                                                "Green/Black/Red" = "GreenBlackRed",
+                                                                                "Yellow/Green/Blue" = "YlGnBu","Inferno" = "Inferno",
+                                                                                "Viridis" = "Viridis","Plasma" = "Plasma",
+                                                                                "Reds" = "OrRd","Blues" = "PuBu","Greens" = "Greens")
+                                                        ),
+                                                        shiny::hr(),
+                                                        h4("Forest Plot Parameters"),
+                                                        numericInput("ForestFontSize","Font Size",value = 1),
+                                                        shiny::hr(),
+                                                        h4("Linearity Plot Parameters"),
+                                                        fluidRow(
+                                                          column(4,
+                                                                 numericInput("linAxisFont","X/Y Axis Font Size",
+                                                                              value = 14, step = 1)
+                                                          ),
+                                                          column(4,
+                                                                 numericInput("linTickFont","Axis Tick Font Size",
+                                                                              value = 10, step = 1)
+                                                          ),
+                                                          column(4,
+                                                                 numericInput("linMainFont","Title Font Size",
+                                                                              value = 16, step = 1)
+                                                          )
+                                                        )
+                                               )
+                                             )
+                            ),
+                            conditionalPanel(condition = "input.SurvPanels == '5'",
+                                             tabsetPanel(
+                                               tabPanel("Input Parameters",
+                                                        p(),
+                                                        h4("Sample Selection"),
+                                                        uiOutput("rendSampleTypeSelection_lasso"),
+                                                        uiOutput("rendFeatureSelection_lasso"),
+                                                        uiOutput("rendSubFeatureSelection_lasso"),
+                                                        h4("Feature Selection"),
+                                                        textInput("LassoModelName","Lasso Model Name:",value = "Custom_Lasso_Model"),
+                                                        uiOutput("rendLassoFeatureSelection_lasso"),
+                                                        h4("Lasso Parameters"),
+                                                        fluidRow(
+                                                          column(6,
+                                                                 uiOutput("rendSurvTimeSelec_lasso")
+                                                          ),
+                                                          column(6,
+                                                                 uiOutput("rendSurvIDSelect_lasso")
+                                                          )
+                                                        ),
+                                                        fluidRow(
+                                                          column(5,
+                                                                 numericInput("LassoTrainProp","Training Sample Proportion:",value = 50, step = 1, max = 100,min = 1)
+                                                          ),
+                                                          column(4,
+                                                                 numericInput("LassoAlpha","Set Lasso Alpha:", value = 1, min = 0, step = 0.1)
+                                                          ),
+                                                          column(3,
+                                                                 numericInput("LassoSeedSelection","Set Seed:", value = 100, min = 1, step = 1)
+                                                          )
+                                                        ),
+                                                        p(),
+                                                        fluidRow(
+                                                          column(8,
+                                                                 radioButtons("viewLassoMinOrSE","Select Lambda to Generate Risk Score:", inline = T,choices = c("Lambda Min","Lambda SE","Custom")),
+                                                          ),
+                                                          column(4,
+                                                                 uiOutput("rendCustomLambda")
+                                                          )
+                                                        ),
+                                                        uiOutput("rednLassoCoefTable"),
+                                                        #,
+                                                        fluidRow(
+                                                          column(6,
+                                                                 downloadButton("dnldLassoModel","Download Lasso Model")
+                                                          ),
+                                                          column(6,
+                                                                 downloadButton("dnldLassoRunData","Download Lasso Run Data")
+                                                          )
+                                                        )
+                                               ),
+                                               tabPanel("Figure Parameters",
+                                                        p(),
+                                                        h4("Survival Plot Parameters"),
+                                                        radioButtons("LassoPlotCutP","Plot Cut-Point", choices = c("Median","Quartile","Optimal","Quantile","User Specified"),
+                                                                     inline = T),
+                                                        uiOutput("rendCutPinput"),
+                                                        fluidRow(
+                                                          column(4,
+                                                                 uiOutput("rendSurvXaxis_lasso")
+                                                          ),
+                                                          column(8,
+                                                                 textInput("SurvPlotTitle_lasso","Survival Plot Title:",value = "")
+                                                          )
+                                                        ),
+                                                        fluidRow(
+                                                          column(3,
+                                                                 selectInput("SurvLegendPos_lasso","Legend Position",choices = c("top","right","left","bottom","none"))
+                                                          ),
+                                                          column(3,
+                                                                 checkboxInput("ShowPval_lasso","Show P.Value",value = T)
+                                                          ),
+                                                          column(3,
+                                                                 checkboxInput("ShowConfInt_lasso","Show Confidence Interval",value = F)
+                                                          ),
+                                                          column(3,
+                                                                 checkboxInput("ShowMedSurvLine_lasso","Show Median Survival Line",value = F)
+                                                          )
+                                                        )
+                                               )
+                                             )
+                            )
+                          ),
+                          
+                          ####----Main Panel----####
+                          
+                          mainPanel(
+                            tabsetPanel(
+                              id = "SurvPanels",
+                              
+                              ####----Survival Analysis Tab----####
+                              
+                              tabPanel("Pathway Level Survival Analysis",
+                                       tabsetPanel(
+                                         id = "SurvPanelsMain",
+                                         
+                                         ##--Median Cut Point--##
+                                         
+                                         tabPanel("Median Cut-Point Survival",
+                                                  p(),
+                                                  htmlOutput("BINSurvDescrip", style = "font-size:14px;"),
+                                                  shiny::hr(),
+                                                  shinycssloaders::withSpinner(shinyjqui::jqui_resizable(plotOutput("SplotBIN", height = SurvPlot_Height, width = SurvPlot_Width)), type = 6),
+                                                  fluidRow(
+                                                    downloadButton("dnldSplotBIN_SVG","Download as SVG"),
+                                                    downloadButton("dnldSplotBIN_PDF","Download as PDF")
+                                                  ),
+                                                  shiny::hr(),
+                                                  shinycssloaders::withSpinner(shinyjqui::jqui_resizable(plotOutput("ssgseaBINDensity", width = "650px", height = "400px")), type = 6),
+                                                  fluidRow(
+                                                    downloadButton("dnldssgseaBINDensity_SVG","Download as SVG"),
+                                                    downloadButton("dnldssgseaBINDensity_PDF","Download as PDF")
+                                                  ),
+                                                  shiny::hr(),
+                                                  h4("Cox Hazard Regression Analysis Summary"),
+                                                  fluidRow(
+                                                    column(6,
+                                                           uiOutput("rendBINHRtab"),
+                                                           style = 'border-right: 0.5px solid lightgray',
+                                                    ),
+                                                    column(6,
+                                                           verbatimTextOutput("MedianCutPSumm")
+                                                    )
+                                                  ),
+                                                  value = 1),
+                                         
+                                         ##--Quaritle Cutpoints--##
+                                         
+                                         tabPanel("Quartile Survival",
+                                                  p(),
+                                                  htmlOutput("QuartSurvDescrip", style = "font-size:14px;"),
+                                                  shiny::hr(),
+                                                  shinycssloaders::withSpinner(shinyjqui::jqui_resizable(plotOutput("Splot", height = SurvPlot_Height, width = SurvPlot_Width)), type = 6),
+                                                  fluidRow(
+                                                    downloadButton("dnldSplot_SVG","Download as SVG"),
+                                                    downloadButton("dnldSplot_PDF","Download as PDF")
+                                                  ),
+                                                  shiny::hr(),
+                                                  shinycssloaders::withSpinner(shinyjqui::jqui_resizable(plotOutput("ssgseaQuartDensity", width = "650px", height = "400px")), type = 6),
+                                                  fluidRow(
+                                                    downloadButton("dnldssgseaQuartDensity_SVG","Download as SVG"),
+                                                    downloadButton("dnldssgseaQuartDensity_PDF","Download as PDF")
+                                                  ),
+                                                  shiny::hr(),
+                                                  h4("Cox Hazard Regression Analysis Summary"),
+                                                  fluidRow(
+                                                    column(6,
+                                                           uiOutput("rendQuartHRtab"),
+                                                           style = 'border-right: 0.5px solid lightgray',
+                                                    ),
+                                                    column(6,
+                                                           verbatimTextOutput("QuartileCutPSumm")
+                                                    )
+                                                  ),
+                                                  value = 2),
+                                         
+                                         ##--Optimal Cut Point--##
+                                         
+                                         tabPanel("Optimal Cut-Point Survival",
+                                                  p(),
+                                                  htmlOutput("CutPSurvDescrip", style = "font-size:14px;"),
+                                                  shiny::hr(),
+                                                  shinycssloaders::withSpinner(shinyjqui::jqui_resizable(plotOutput("ScutPointPlot", height = SurvPlot_Height, width = SurvPlot_Width)), type = 6),
+                                                  fluidRow(
+                                                    downloadButton("dnldScutPointPlot_SVG","Download as SVG"),
+                                                    downloadButton("dnldScutPointPlot_PDF","Download as PDF")
+                                                  ),
+                                                  shiny::hr(),
+                                                  shinycssloaders::withSpinner(shinyjqui::jqui_resizable(plotOutput("ssgseaCutPDensity", width = "650px", height = "400px")), type = 6),
+                                                  fluidRow(
+                                                    downloadButton("dnldssgseaCutPDensity_SVG","Download as SVG"),
+                                                    downloadButton("dnldssgseaCutPDensity_PDF","Download as PDF")
+                                                  ),
+                                                  shiny::hr(),
+                                                  h4("Cox Hazard Regression Analysis Summary"),
+                                                  fluidRow(
+                                                    column(6,
+                                                           uiOutput("rendCutPointHRtab"),
+                                                           style = 'border-right: 0.5px solid lightgray',
+                                                    ),
+                                                    column(6,
+                                                           verbatimTextOutput("OptimalCutPSumm")
+                                                    )
+                                                  ),
+                                                  value = 3),
+                                         
+                                         ##--Quantile Cutpoints--##
+                                         
+                                         tabPanel("Top/Bottom Cut-Point Survival",
+                                                  p(),
+                                                  htmlOutput("QuantSurvDescrip", style = "font-size:14px;"),
+                                                  shiny::hr(),
+                                                  shinycssloaders::withSpinner(shinyjqui::jqui_resizable(plotOutput("SquantPlot", height = SurvPlot_Height, width = SurvPlot_Width)), type = 6),
+                                                  numericInput("QuantPercent","Top/Bottom Cut-Point Quantile Cutoff (%)", value = 25, min = 0, max = 100),
+                                                  fluidRow(
+                                                    downloadButton("dnldSquantPlot_SVG","Download as SVG"),
+                                                    downloadButton("dnldSquantPlot_PDF","Download as PDF")
+                                                  ),
+                                                  shiny::hr(),
+                                                  shinycssloaders::withSpinner(shinyjqui::jqui_resizable(plotOutput("ssgseaQuantDensity", width = "650px", height = "400px")), type = 6),
+                                                  fluidRow(
+                                                    downloadButton("dnldssgseaQuantDensity_SVG","Download as SVG"),
+                                                    downloadButton("dnldssgseaQuantDensity_PDF","Download as PDF")
+                                                  ),
+                                                  shiny::hr(),
+                                                  h4("Cox Hazard Regression Analysis Summary"),
+                                                  fluidRow(
+                                                    column(6,
+                                                           uiOutput("rendQuantHRtab"),
+                                                           style = 'border-right: 0.5px solid lightgray',
+                                                    ),
+                                                    column(6,
+                                                           verbatimTextOutput("QuantileCutPSumm")
+                                                    )
+                                                  ),
+                                                  value = 4),
+                                         
+                                         ##--User Cut Point--##
+                                         
+                                         tabPanel("User Cut-Point Survival",
+                                                  p(),
+                                                  htmlOutput("Quant2SurvDescrip", style = "font-size:14px;"),
+                                                  shiny::hr(),
+                                                  shinycssloaders::withSpinner(shinyjqui::jqui_resizable(plotOutput("SquantPlot2", height = SurvPlot_Height, width = SurvPlot_Width)), type = 6),
+                                                  numericInput("QuantPercent2","Above/Below User Quantile Cut-Point (%)", value = 25, min = 0, max = 100),
+                                                  fluidRow(
+                                                    downloadButton("dnldSquantPlot2_SVG","Download as SVG"),
+                                                    downloadButton("dnldSquantPlot2_PDF","Download as PDF")
+                                                  ),
+                                                  shiny::hr(),
+                                                  shinycssloaders::withSpinner(shinyjqui::jqui_resizable(plotOutput("ssgseaQuant2Density", width = "650px", height = "400px")), type = 6),
+                                                  fluidRow(
+                                                    downloadButton("dnldssgseaQuant2Density_SVG","Download as SVG"),
+                                                    downloadButton("dnldssgseaQuant2Density_PDF","Download as PDF")
+                                                  ),
+                                                  shiny::hr(),
+                                                  h4("Cox Hazard Regression Analysis Summary"),
+                                                  fluidRow(
+                                                    column(6,
+                                                           uiOutput("rendQuantHRtab2"),
+                                                           style = 'border-right: 0.5px solid lightgray',
+                                                    ),
+                                                    column(6,
+                                                           verbatimTextOutput("UserCutPSumm")
+                                                    )
+                                                  ),
+                                                  value = 5)
+                                       ),
+                                       value = 1),
+                              
+                              ####----Univariate Survival----####
+                              
+                              tabPanel("Univariate Survival Analysis",
+                                       p(),
+                                       fluidRow(
+                                         column(5,
+                                                uiOutput("rendSurvivalFeatureSingle"),
+                                                ## Allows all select inputs to be wide enough to read the contents
+                                                tags$head(
+                                                  tags$style(HTML('
+                                                                  .selectize-input {
+                                                                      white-space: nowrap;
+                                                                  }
+                                                                  .selectize-dropdown {
+                                                                      width: 500px !important;
+                                                                  }'
+                                                  )
+                                                  )
+                                                ),
+                                                fluidRow(
+                                                  column(3,
+                                                         checkboxInput("UniVarNAcheck","Remove NA/Unknown/Inf",value = T)
+                                                  ),
+                                                  column(3,
+                                                         checkboxInput("UniVarContCheck","Continuous Feature",value = F)
+                                                  ),
+                                                  column(3,
+                                                         uiOutput("rendUniVarContHiLoCheck")
+                                                  )
+                                                ),
+                                                uiOutput("rendSurvFeatVariableUni"),
+                                         ),
+                                         column(7,
+                                                #htmlOutput("UnivarSummExpl", style = "font-size:14px;"),
+                                         )
+                                       ),
+                                       tabsetPanel(
+                                         id = "UniVarPlots",
+                                         
+                                         ##--Survival Plot--##
+                                         
+                                         tabPanel("Survival Plot",
+                                                  p(),
+                                                  shinycssloaders::withSpinner(shinyjqui::jqui_resizable(plotOutput("featSplot", width = SurvPlot_Width, height = SurvPlot_Height)), type = 6),
+                                                  fluidRow(
+                                                    downloadButton("dnldfeatSplot_SVG","Download as SVG"),
+                                                    downloadButton("dnldfeatSplot_PDF","Download as PDF")
+                                                  )
+                                                  
+                                         ),
+                                         
+                                         ##--Coxh Tables--##
+                                         
+                                         tabPanel("Coxh Table",
+                                                  p(),
+                                                  fluidRow(
+                                                    column(6,
+                                                           div(shinycssloaders::withSpinner(tableOutput("SSingleFeatureHRtab"), type = 7, size = 0.5), style = "font-size:12px; width:500px; overflow-X: scroll")
+                                                    ),
+                                                    column(6,
+                                                           verbatimTextOutput("UnivarSummary")
+                                                    )
+                                                  )
+                                         ),
+                                         
+                                         ##--Forest Plot--##
+                                         
+                                         tabPanel("Forest Plot",
+                                                  p(),
+                                                  shinycssloaders::withSpinner(shinyjqui::jqui_resizable(plotOutput("SinglevarForestPlot", width = "100%", height = "800px")), type = 6),
+                                                  fluidRow(
+                                                    downloadButton("dnldUniVarForestplot_SVG","Download as SVG"),
+                                                    downloadButton("dnldUniVarForestplot_PDF","Download as PDF")
+                                                  )
+                                         ),
+                                         
+                                         ##--Linearity Check--##
+                                         
+                                         tabPanel("Linearity Check",
+                                                  p(),
+                                                  fluidRow(
+                                                    column(3,
+                                                           selectInput("ResidualTypeUni","Select Residual Type",
+                                                                       choices = c("deviance", "martingale", "score", "schoenfeld", "dfbeta", "dfbetas", "scaledsch", "partial"))
+                                                    ),
+                                                    column(3,
+                                                           selectInput("linPredict1", "X-axis Scale:",
+                                                                       choices = c("linear.predictions","observation.id","time"))
+                                                    )
+                                                  ),
+                                                  uiOutput("timewarnmessage1"),
+                                                  shinycssloaders::withSpinner(shinyjqui::jqui_resizable(plotOutput("UnivarLinearityPlot", width = "100%", height = "500px")), type = 6),
+                                                  fluidRow(
+                                                    downloadButton("dnldUniVarLinplot_SVG","Download as SVG"),
+                                                    downloadButton("dnldUniVarLinplot_PDF`","Download as PDF")
+                                                  )
+                                         )
+                                       ),
+                                       value = 2),
+                              
+                              ####----Multivariate Survival----####
+                              
+                              tabPanel("Multivariate Coxh Analysis",
+                                       tabsetPanel(
+                                         id = "multivariate",
+                                         
+                                         ####----Bivariate Additive Survival----####
+                                         
+                                         tabPanel("Bivariate Additive Survival Analysis",
+                                                  p(),
+                                                  fluidRow(
+                                                    column(4,
+                                                           uiOutput("rendSurvivalFeatureBi1"),
+                                                           fluidRow(
+                                                             column(4,
+                                                                    checkboxInput("BiVarAddNAcheck1","Remove NA/Unknown/Inf",value = T)
+                                                             ),
+                                                             column(4,
+                                                                    checkboxInput("BiVarAddContCheck1","Continuous Feature",value = F)
+                                                             ),
+                                                             column(4,
+                                                                    uiOutput("rendBiVarAddContHiLoCheck1")
+                                                             )
+                                                           ),
+                                                           uiOutput("rendSurvFeatVariableBi1")
+                                                    ),
+                                                    column(4,
+                                                           uiOutput("rendSurvivalFeatureBi2"),
+                                                           fluidRow(
+                                                             column(4,
+                                                                    checkboxInput("BiVarAddNAcheck2","Remove NA/Unknown/Inf",value = T)
+                                                             ),
+                                                             column(4,
+                                                                    checkboxInput("BiVarAddContCheck2","Continuous Feature",value = F)
+                                                             ),
+                                                             column(4,
+                                                                    uiOutput("rendBiVarAddContHiLoCheck2")
+                                                             )
+                                                           ),
+                                                           uiOutput("rendSurvFeatVariableBi2")
+                                                    ),
+                                                    column(4,
+                                                           htmlOutput("BivarAddSummExpl", style = "font-size:14px;")
+                                                    )
+                                                  ),
+                                                  tabsetPanel(
+                                                    id = "BiVarPlots",
+                                                    
+                                                    ##--Coxh Tables--##
+                                                    
+                                                    tabPanel("Cox HR Table",
+                                                             p(),
+                                                             fluidRow(
+                                                               column(6,
+                                                                      div(shinycssloaders::withSpinner(tableOutput("BiFeatureHRtab"), type = 7, size = 0.5), style = "font-size:12px; width:500px; overflow-X: scroll")
+                                                               ),
+                                                               column(6,
+                                                                      verbatimTextOutput("bivarSummary"),
+                                                                      fluidRow(
+                                                                        column(6,
+                                                                               verbatimTextOutput("bivarAnova1")
+                                                                        ),
+                                                                        column(6,
+                                                                               verbatimTextOutput("bivarAnova2")
+                                                                        )
+                                                                      )
+                                                               )
+                                                             )
+                                                    ),
+                                                    
+                                                    ##--Forest Plot--##
+                                                    
+                                                    tabPanel("Forest Plot",
+                                                             p(),
+                                                             shinycssloaders::withSpinner(shinyjqui::jqui_resizable(plotOutput("BivarForestPlot", width = "100%", height = "800px")), type = 6),
+                                                             fluidRow(
+                                                               downloadButton("dnldBiVarAddForest_SVG","Download as SVG"),
+                                                               downloadButton("dnldBiVarAddForest_PDF","Download as PDF")
+                                                             )
+                                                    ),
+                                                    
+                                                    ##--Linearity Check--##
+                                                    
+                                                    tabPanel("Linearity Check",
+                                                             p(),
+                                                             fluidRow(
+                                                               column(3,
+                                                                      selectInput("ResidualTypeBi","Select Residual Type",
+                                                                                  choices = c("deviance", "martingale", "score", "schoenfeld", "dfbeta", "dfbetas", "scaledsch", "partial"))
+                                                               ),
+                                                               column(3,
+                                                                      selectInput("linPredict2", "X-axis Scale:",
+                                                                                  choices = c("linear.predictions","observation.id","time"))
+                                                               )
+                                                             ),
+                                                             uiOutput("timewarnmessage2"),
+                                                             shinycssloaders::withSpinner(shinyjqui::jqui_resizable(plotOutput("BivarLinearityPlot", width = "100%", height = "500px")), type = 6),
+                                                             fluidRow(
+                                                               downloadButton("dnldBiVarAddLinplot_SVG","Download as SVG"),
+                                                               downloadButton("dnldBiVarAddLinplot_PDF","Download as PDF")
+                                                             )
+                                                    )
+                                                  )
+                                         ),
+                                         
+                                         ####----Bivariate Interaction Survival----####
+                                         
+                                         tabPanel("Bivariate Interaction Survival Analysis",
+                                                  p(),
+                                                  fluidRow(
+                                                    column(4,
+                                                           uiOutput("rendSurvivalFeatureBi1Inter"),
+                                                           fluidRow(
+                                                             column(4,
+                                                                    checkboxInput("BiVarIntNAcheck1","Remove NA/Unknown/Inf",value = T)
+                                                             ),
+                                                             column(4,
+                                                                    checkboxInput("BiVarIntContCheck1","Continuous Feature",value = F)
+                                                             ),
+                                                             column(4,
+                                                                    uiOutput("rendBiVarIntContHiLoCheck1")
+                                                             )
+                                                           ),
+                                                           uiOutput("rendSurvFeatVariableBi1Inter")
+                                                           
+                                                    ),
+                                                    column(4,
+                                                           uiOutput("rendSurvivalFeatureBi2Inter"),
+                                                           fluidRow(
+                                                             column(4,
+                                                                    checkboxInput("BiVarIntNAcheck2","Remove NA/Unknown/Inf",value = T)
+                                                             ),
+                                                             column(4,
+                                                                    checkboxInput("BiVarIntContCheck2","Continuous Feature",value = F)
+                                                             ),
+                                                             column(4,
+                                                                    uiOutput("rendBiVarIntContHiLoCheck2")
+                                                             )
+                                                           ),
+                                                           uiOutput("rendSurvFeatVariableBi2Inter")
+                                                    ),
+                                                    column(4,
+                                                           verbatimTextOutput("BivarIntSummExpl")
+                                                    )
+                                                  ),
+                                                  tabsetPanel(
+                                                    id = "BiVarInterTabs",
+                                                    
+                                                    ##--Survival Plot--##
+                                                    
+                                                    tabPanel("Survival Plot",
+                                                             p(),
+                                                             shinycssloaders::withSpinner(shinyjqui::jqui_resizable(plotOutput("featSplotBi", width = SurvPlot_Width, height = SurvPlot_Height)), type = 6),
+                                                             fluidRow(
+                                                               downloadButton("dnldfeatSplotBi_SVG","Download as SVG"),
+                                                               downloadButton("dnldfeatSplotBi_PDF","Download as PDF")
+                                                             )
+                                                    ),
+                                                    
+                                                    ##--Coxh Tables--##
+                                                    
+                                                    tabPanel("Cox HR Table",
+                                                             p(),
+                                                             fluidRow(
+                                                               column(6,
+                                                                      div(shinycssloaders::withSpinner(tableOutput("BiFeatureHRtabInter"), type = 7, size = 0.5), style = "font-size:12px; width:500px; overflow-X: scroll")
+                                                               ),
+                                                               column(6,
+                                                                      verbatimTextOutput("bivarSummaryInter"),
+                                                                      verbatimTextOutput("bivarAnovaInter1")
+                                                               )
+                                                             )
+                                                    ),
+                                                    
+                                                    ##--Forest Plot--##
+                                                    
+                                                    tabPanel("Forest Plot",
+                                                             p(),
+                                                             shinycssloaders::withSpinner(shinyjqui::jqui_resizable(plotOutput("BivarForestPlotInter", width = "100%", height = "800px")), type = 6),
+                                                             fluidRow(
+                                                               downloadButton("dnldBiVarIntForest_SVG","Download as SVG"),
+                                                               downloadButton("dnldBiVarIntForest_PDF","Download as PDF")
+                                                             )
+                                                    ),
+                                                    
+                                                    ##--Linearity Check--##
+                                                    
+                                                    tabPanel("Linearity Check",
+                                                             p(),
+                                                             fluidRow(
+                                                               column(3,
+                                                                      selectInput("ResidualTypeInter","Select Residual Type",
+                                                                                  choices = c("deviance", "martingale", "score", "schoenfeld", "dfbeta", "dfbetas", "scaledsch", "partial"))
+                                                               ),
+                                                               column(3,
+                                                                      selectInput("linPredict3", "X-axis Scale:",
+                                                                                  choices = c("linear.predictions","observation.id","time"))
+                                                               )
+                                                             ),
+                                                             uiOutput("timewarnmessage3"),
+                                                             shinycssloaders::withSpinner(shinyjqui::jqui_resizable(plotOutput("BivarLinearityPlotInter", width = "100%", height = "500px")), type = 6),
+                                                             fluidRow(
+                                                               downloadButton("dnldBiVarIntLinplot_SVG","Download as SVG"),
+                                                               downloadButton("dnldBiVarIntLinplot_PDF","Download as PDF")
+                                                             )
+                                                    )
+                                                    
+                                                  )
+                                         ),
+                                         
+                                         ####----Multivariate Survival----####
+                                         
+                                         tabPanel("Multivariate Coxh Analysis",
+                                                  p(),
+                                                  fluidRow(
+                                                    column(4,
+                                                           uiOutput("rendSurvivalFeature"),
+                                                           checkboxInput("MultiVarNAcheck","Remove NA/Unknown",value = T)
+                                                    )
+                                                  ),
+                                                  tabsetPanel(
+                                                    id = "multivartabstwo",
+                                                    
+                                                    ##--Coxh Tables--##
+                                                    
+                                                    tabPanel("Coxh Tables",
+                                                             fluidRow(
+                                                               column(6,
+                                                                      h4("Coxh Hazard Ratio (Categorical)"),
+                                                                      verbatimTextOutput("multivarSummaryCat"),
+                                                                      div(shinycssloaders::withSpinner(tableOutput("SFeatureHRtabCat"), type = 7, size = 0.5), style = "font-size:12px; width:500px; overflow-X: scroll")
+                                                               ),
+                                                               column(6,
+                                                                      h4("Coxh Hazard Ratio (Continuous)"),
+                                                                      verbatimTextOutput("multivarSummaryCont"),
+                                                                      div(shinycssloaders::withSpinner(tableOutput("SFeatureHRtabCont"), type = 7, size = 0.5), style = "font-size:12px; width:500px; overflow-X: scroll")
+                                                               )
+                                                             )
+                                                    ),
+                                                    
+                                                    ##--Forest Plot--##
+                                                    
+                                                    tabPanel("Forest Plot",
+                                                             p(),
+                                                             shinycssloaders::withSpinner(shinyjqui::jqui_resizable(plotOutput("MultivarForestPlot", width = "100%", height = "800px")), type = 6),
+                                                             fluidRow(
+                                                               downloadButton("dnldMultiVarForest_SVG","Download as SVG"),
+                                                               downloadButton("dnldMultiVarForest_PDF","Download as PDF")
+                                                             )
+                                                    )
+                                                  )
+                                         )
+                                       ),
+                                       value = 3),
+                              
+                              ####----Lasso Analysis----####
+                              
+                              #tabPanel("Lasso Cox Model",
+                              #         p(),
+                              #         fluidRow(
+                              #           column(2, 
+                              #                  br(),
+                              #                  actionButton("RunLassoModelGen","Generate Lasso Model")
+                              #                  ),
+                              #           column(3,
+                              #                  uiOutput("rendSurvTimeSelecView_lasso")
+                              #                  ),
+                              #           column(3,
+                              #                  uiOutput("rendSurvIDSelecView_lasso")
+                              #                  )
+                              #         ),
+                              #         fluidRow(
+                              #           column(6,
+                              #                  shinycssloaders::withSpinner(shinyjqui::jqui_resizable(plotOutput("Lasso_Train_Splot", width = "100%", height = "500px")),type = 6),
+                              #                  downloadButton("dnldSplotLassoTrain_SVG","Download as SVG"),
+                              #                  shiny::hr(),
+                              #                  h4("Path of Coefficients"),
+                              #                  shinyjqui::jqui_resizable(plotOutput("Lasso_CoeffPlot", width = "100%", height = "400px")),
+                              #                  shiny::hr(),
+                              #                  h4("Training Cox Hazard Regression Analysis Summary"),
+                              #                  uiOutput("rendLassoTrainHRtab"),
+                              #                  verbatimTextOutput("LassoTrainCoxSumm")
+                              #           ),
+                              #           column(6,
+                              #                  shinycssloaders::withSpinner(shinyjqui::jqui_resizable(plotOutput("Lasso_Test_Splot", width = "100%", height = "500px")),type = 6),
+                              #                  downloadButton("dnldSplotLassoTest_SVG","Download as SVG"),
+                              #                  shiny::hr(),
+                              #                  h4("Lambda Cross-Validation"),
+                              #                  shinyjqui::jqui_resizable(plotOutput("Lasso_LambdaPlot", width = "100%", height = "400px")),
+                              #                  shiny::hr(),
+                              #                  h4("Testing Cox Hazard Regression Analysis Summary"),
+                              #                  uiOutput("rendLassoTestHRtab"),
+                              #                  verbatimTextOutput("LassoTestCoxSumm")
+                              #           )
+                              #           ),
+                              #         value = 5),
+                              
+                              ####----Data Exploration----####
+                              
+                              tabPanel("Data Exploration",
+                                       tabsetPanel(
+                                         id = "DataExploration",
+                                         tabPanel("Download Survival Data",
+                                                  p(),
+                                                  uiOutput("rendMetaTableCols"),
+                                                  uiOutput("rendMetaTable"),
+                                                  fluidRow(
+                                                    column(6,
+                                                           uiOutput("DnldMetaButon")
+                                                    ),
+                                                    column(6,
+                                                           uiOutput("DnldExprButon")
+                                                    )
+                                                  ),
+                                                  value = 5),
+                                         tabPanel("Score Density",
+                                                  p(),
+                                                  fluidRow(
+                                                    numericInput("densityPercent","User Defined Percentile (Red)",value = 15, width = "200px"),
+                                                    checkboxInput("QuartileLinesCheck","Show Quartile Lines (Blue)",value = T)
+                                                  ),
+                                                  shinycssloaders::withSpinner(shinyjqui::jqui_resizable(plotOutput("ssgseaDensity", width = "100%", height = "500px")), type = 6),
+                                                  fluidRow(
+                                                    downloadButton("dnldssgseaDensity_SVG","Download as SVG"),
+                                                    downloadButton("dnldssgseaDensity_PDF","Download as PDF")
+                                                  ),
+                                                  div(DT::dataTableOutput("ssgseaDensityTable"), style = "font-size:12px"),
+                                                  downloadButton("dnldssgseaDensityTable","Download Table"),
+                                                  value = 6),
+                                         tabPanel("Feature Comparison",
+                                                  p(),
+                                                  fluidRow(
+                                                    column(3,
+                                                           uiOutput("rendScatterFeature")
+                                                    ),
+                                                    column(2,
+                                                           radioButtons("ColorScatterChoice","Color Plot by:",choices = c("Feature","Single Color"))
+                                                    ),
+                                                    column(3,
+                                                           uiOutput("rendScatterColor")
+                                                    ),
+                                                    column(2,
+                                                           checkboxGroupInput("ScatterLog","", choices = c("Log x-axis","Log y-axis"))
+                                                    ),
+                                                  ),
+                                                  shinycssloaders::withSpinner(shinyjqui::jqui_resizable(plotlyOutput("FeatCompScatterPlot", width = "100%", height = "500px")), type = 6),
+                                                  fluidRow(
+                                                    downloadButton("dnldFeatCompScatter_SVG","Download as SVG"),
+                                                    downloadButton("dnldFeatCompScatter_PDF","Download as PDF")
+                                                  ),
+                                                  p(),
+                                                  div(DT::dataTableOutput("FeatCompScatterTable"), style = "font-size:12px"),
+                                                  downloadButton("dnldFeatCompScatterTable","Download Table"),
+                                                  value = 7),
+                                         tabPanel("Risk Stratification",
+                                                  tabsetPanel(
+                                                    tabPanel("Risk Straification Boxplot",
+                                                             p("Users may adjust risk-stratification cutoff parameters under the 'Risk Strat Parameters' tab on the sidebar panel."),
+                                                             checkboxInput("SBoxLog", "Log Transform Score", value = T),
+                                                             shinycssloaders::withSpinner(shinyjqui::jqui_resizable(plotOutput("Sboxplot", width = "100%", height = "500px")), type = 6),
+                                                             fluidRow(
+                                                               downloadButton("dnldSboxplot_SVG","Download as SVG"),
+                                                               downloadButton("dnldSboxplot_PDF","Download as PDF")
+                                                             ),
+                                                             div(DT::dataTableOutput("SboxplotTable"), style = "font-size:12px; height:450px; overflow-Y: scroll"),
+                                                             p(),
+                                                             downloadButton("dnldSBoxplotTab","Download Table")
+                                                    ),
+                                                    tabPanel("Risk Straification Heatmap",
+                                                             p("Users may adjust risk-stratification cutoff parameters under the 'Risk Strat Parameters' tab on the sidebar panel."),
+                                                             uiOutput("heatmap_error_message"),
+                                                             shinycssloaders::withSpinner(shinyjqui::jqui_resizable(plotOutput("Sheatmap", width = "100%", height = "2000px")), type = 6),
+                                                             fluidRow(
+                                                               downloadButton("dnldSheatmap_SVG","Download as SVG"),
+                                                               downloadButton("dnldSheatmap_PDF","Download as PDF"),
+                                                               downloadButton("dnldSheatmapexpr","Download Expression Matrix From Heatmap")
+                                                             )
+                                                    )
+                                                  )
+                                         ),
+                                         tabPanel("Feature Stratification",
+                                                  tabsetPanel(
+                                                    tabPanel("Feature Boxplot",
+                                                             p(),
+                                                             fluidRow(
+                                                               column(4,
+                                                                      uiOutput("rendBoxplotFeature")
+                                                               ),
+                                                               column(3,
+                                                                      checkboxInput("BoxPRemoveNA","Remove NA/Unknowns",value = T)
+                                                               ),
+                                                               column(3,
+                                                                      checkboxInput("FBoxLog", "Log Transform Score", value = T)
+                                                               )
+                                                             ),
+                                                             shinycssloaders::withSpinner(shinyjqui::jqui_resizable(plotOutput("Featureboxplot", width = "100%", height = "500px")), type = 6),
+                                                             fluidRow(
+                                                               downloadButton("dnldFboxplot_SVG","Download as SVG"),
+                                                               downloadButton("dnldFboxplot_PDF","Download as PDF")
+                                                             ),
+                                                             div(DT::dataTableOutput("FeatureboxplotTable"), style = "font-size:12px; height:450px; overflow-Y: scroll"),
+                                                             p(),
+                                                             downloadButton("dnldFeatureboxplotTab","Download Table")
+                                                    ),
+                                                    tabPanel("Feature Heatmap",
+                                                             p(),
+                                                             uiOutput("heatmap_error_message2"),
+                                                             fluidRow(
+                                                               column(4,
+                                                                      uiOutput("rendHeatmapFeature")
+                                                               ),
+                                                               column(3,
+                                                                      checkboxInput("HeatRemoveNA","Remove NA/Unknowns",value = T)
+                                                               )
+                                                             ),
+                                                             shinycssloaders::withSpinner(shinyjqui::jqui_resizable(plotOutput("FeatureHeatmap", width = "100%", height = "2000px")), type = 6),
+                                                             fluidRow(
+                                                               downloadButton("dnldFheatmap_SVG","Download as SVG"),
+                                                               downloadButton("dnldFheatmap_PDF","Download as PDF"),
+                                                               downloadButton("dnldFheatmapexpr","Download Expression Matrix From Heatmap")
+                                                             )
+                                                    )
+                                                  )
+                                         )
+                                       ),
+                                       value = 4)
+                            )
+                          )
+                        )
+                      )
+             ),
+             tabPanel("About",
+                      fluidPage(
+                        mainPanel(
+                          tabPanel("Purpose and Methods",
+                                   uiOutput("rendPurposeAndMethodsMD")
+                                   #tabsetPanel(
+                                   #  tabPanel("Purpose and Methods",
+                                   #           uiOutput("rendPurposeAndMethodsMD")),
+                                   #  tabPanel("Tutorial",
+                                   #           uiOutput("rendTutorialMD"))
+                                   #)
+                          )
+                        )
+                      )
+             )
+  )
+
+
+
 ####----Server----####
 
 
@@ -539,7 +1519,7 @@ server <- function(input, output, session) {
     if (length(unique(meta[,metacol_sampletype])) > 1) {
       
       SampleTypeChoices <- unique(meta[,metacol_sampletype])
-      SampleTypeChoices <- c(SampleTypeChoices,"All_Sample_Types")
+      SampleTypeChoices <- c(SampleTypeChoices,"Show All Sample Types")
       selectInput("SampleTypeSelection",paste("Select Sample Type (",metacol_sampletype,"):",sep = ""),
                   choices = SampleTypeChoices, selected = PreSelect_SamplyType)
       
@@ -552,24 +1532,51 @@ server <- function(input, output, session) {
     
     if (length(unique(meta[,metacol_sampletype])) > 1) {
       
-      if (input$SampleTypeSelection == "All_Sample_Types") {
+      if (input$SampleTypeSelection == "Show All Sample Types") {
         
-        FeatureChoices <- c(metacol_sampletype,metacol_feature,"All_Features")
-        selectInput("FeatureSelection","Select Feature:", choices = FeatureChoices, selected = PreSelect_Feature)
+        FeatureChoices <- c(metacol_sampletype,metacol_feature,"Show All Samples")
+        MetaClass <- sapply(as_tibble(meta), typeof)
+        MetaClass_num <- names(MetaClass[which(MetaClass == "double")])
+        IntMetaCols <- apply(meta[,MetaClass_num],2,function(x) any(round(x) != x))
+        MaybeShow <- names(IntMetaCols[which(IntMetaCols == FALSE)])
+        ## Checks if integer columns might be categorical or continuous
+        MaybeShowCols <- apply(meta[,MaybeShow],2,function(x) any(length(levels(as.factor(x)))<(nrow(meta)*0.75)))
+        MaybeNotShow <- names(MaybeShowCols[which(MaybeShowCols == FALSE)])
+        DoNotShow <- c(MaybeNotShow,names(IntMetaCols[which(IntMetaCols == TRUE)]))
+        FeatureChoices <- FeatureChoices[!FeatureChoices %in% DoNotShow]
+        selectInput("FeatureSelection","Select Feature to Subset Samples:", choices = FeatureChoices, selected = PreSelect_Feature)
         
       }
-      else if (input$SampleTypeSelection != "All_Sample_Types") {
+      else if (input$SampleTypeSelection != "Show All Sample Types") {
         
-        FeatureChoices <- c(metacol_feature,"All_Features")
-        selectInput("FeatureSelection","Select Feature:", choices = FeatureChoices, selected = PreSelect_Feature)
+        FeatureChoices <- c(metacol_feature,"Show All Samples")
+        MetaClass <- sapply(as_tibble(meta), typeof)
+        MetaClass_num <- names(MetaClass[which(MetaClass == "double")])
+        IntMetaCols <- apply(meta[,MetaClass_num],2,function(x) any(round(x) != x))
+        MaybeShow <- names(IntMetaCols[which(IntMetaCols == FALSE)])
+        ## Checks if integer columns might be categorical or continuous
+        MaybeShowCols <- apply(meta[,MaybeShow],2,function(x) any(length(levels(as.factor(x)))<(nrow(meta)*0.75)))
+        MaybeNotShow <- names(MaybeShowCols[which(MaybeShowCols == FALSE)])
+        DoNotShow <- c(MaybeNotShow,names(IntMetaCols[which(IntMetaCols == TRUE)]))
+        FeatureChoices <- FeatureChoices[!FeatureChoices %in% DoNotShow]
+        selectInput("FeatureSelection","Select Feature to Subset Samples:", choices = FeatureChoices, selected = PreSelect_Feature)
         
       }
       
     }
     else if (length(unique(meta[,metacol_sampletype])) <= 1) {
       
-      FeatureChoices <- c(metacol_feature,"All_Features")
-      selectInput("FeatureSelection","Select Feature:", choices = FeatureChoices, selected = PreSelect_Feature)
+      FeatureChoices <- c(metacol_feature,"Show All Samples")
+      MetaClass <- sapply(as_tibble(meta), typeof)
+      MetaClass_num <- names(MetaClass[which(MetaClass == "double")])
+      IntMetaCols <- apply(meta[,MetaClass_num],2,function(x) any(round(x) != x))
+      MaybeShow <- names(IntMetaCols[which(IntMetaCols == FALSE)])
+      ## Checks if integer columns might be categorical or continuous
+      MaybeShowCols <- apply(meta[,MaybeShow],2,function(x) any(length(levels(as.factor(x)))<(nrow(meta)*0.75)))
+      MaybeNotShow <- names(MaybeShowCols[which(MaybeShowCols == FALSE)])
+      DoNotShow <- c(MaybeNotShow,names(IntMetaCols[which(IntMetaCols == TRUE)]))
+      FeatureChoices <- FeatureChoices[!FeatureChoices %in% DoNotShow]
+      selectInput("FeatureSelection","Select Feature to Subset Samples:", choices = FeatureChoices, selected = PreSelect_Feature)
       
     }
     
@@ -584,28 +1591,48 @@ server <- function(input, output, session) {
       SampleType <- input$SampleTypeSelection
     }
     if (length(unique(meta[,metacol_sampletype])) <= 1) {
-      SampleType <- "All_Sample_Types"
+      SampleType <- "Show All Sample Types"
     }
     #SampleType <- input$SampleTypeSelection
     Feature <- input$FeatureSelection
     
-    if (SampleType == "All_Sample_Types") {
+    if (SampleType == "Show All Sample Types") {
       meta <- meta
     }
-    if (SampleType != "All_Sample_Types") {
+    if (SampleType != "Show All Sample Types") {
       meta <- meta[which(meta[,metacol_sampletype] == SampleType),]
     }
     
-    if (Feature != "All_Features") {
+    if (Feature != "Show All Samples") {
       
       SubFeatureChoices <- unique(meta[,Feature])
+      #if (input$MainFeatContCheck == T) {
+      #  SubFeatureChoices <- unique(highlow(SubFeatureChoices))
+      #  SubFeatureChoices <- gsub("High",paste0(Feature,"_High_AboveMedian"),SubFeatureChoices)
+      #  SubFeatureChoices <- gsub("Low",paste0(Feature,"_Low_BelowMedian"),SubFeatureChoices)
+      #}
       # Sort options, will put 1,TRUE,yes before 0,FASLE,no, so the 'positive' value is the initial selected - puts NA last
       SubFeatureChoices <- sort(SubFeatureChoices, decreasing = T, na.last = T)
+      
       selectInput("subFeatureSelection","Feature Condition:", choices = SubFeatureChoices, selected = PreSelect_SubFeature)
       
     }
     
   })
+  
+  #output$rendNumContWarning <- renderUI({
+  #  
+  #  Feature <- input$FeatureSelection
+  #  if (Feature != "Show All Samples") {
+  #    SubFeatureChoices <- unique(meta[,Feature])
+  #    #if (input$MainFeatContCheck == F) {
+  #      if (any(!is.na(as.numeric(as.character(SubFeatureChoices))))) {
+  #        p("Numeric variables detected in selected feature. Categorical variables recommended to subset samples.", style = "color:red")
+  #      }
+  #    #}
+  #  }
+  #  
+  #})
   
   ##--Univariate--##
   
@@ -615,9 +1642,9 @@ server <- function(input, output, session) {
     geneset_name <- names(geneset)
     
     if (length(unique(meta[,metacol_sampletype])) > 1) {
-      if (input$SampleTypeSelection != "All_Sample_Types") {
+      if (input$SampleTypeSelection != "Show All Sample Types") {
         
-        if (input$FeatureSelection != "All_Features") {
+        if (input$FeatureSelection != "Show All Samples") {
           metacol_feature <- metacol_feature[-which(metacol_feature == input$FeatureSelection)]
         }
         metacol_feature <- c(metacol_feature,geneset_name,"QuartileCutP","MedianCutP","OptimalCutP","TopBottomCutP","UserCutP")
@@ -625,11 +1652,11 @@ server <- function(input, output, session) {
                     choices = metacol_feature, selected = PreSelect_SecondaryFeature)
         
       }
-      else if (input$SampleTypeSelection == "All_Sample_Types") {
+      else if (input$SampleTypeSelection == "Show All Sample Types") {
         
         
         SurvFeatChoices2 <- c(metacol_sampletype,metacol_feature,geneset_name,"QuartileCutP","MedianCutP","OptimalCutP","TopBottomCutP","UserCutP")
-        if (input$FeatureSelection != "All_Features") {
+        if (input$FeatureSelection != "Show All Samples") {
           SurvFeatChoices2 <- SurvFeatChoices2[-which(SurvFeatChoices2 == input$FeatureSelection)]
         }
         selectInput("SingleSurvivalFeature","Select Feature:",
@@ -639,7 +1666,7 @@ server <- function(input, output, session) {
     }
     else if (length(unique(meta[,metacol_sampletype])) <= 1) {
       SurvFeatChoices2 <- c(metacol_sampletype,metacol_feature,geneset_name,"QuartileCutP","MedianCutP","OptimalCutP","TopBottomCutP","UserCutP")
-      if (input$FeatureSelection != "All_Features") {
+      if (input$FeatureSelection != "Show All Samples") {
         SurvFeatChoices2 <- SurvFeatChoices2[-which(SurvFeatChoices2 == input$FeatureSelection)]
       }
       selectInput("SingleSurvivalFeature","Select Feature:",
@@ -658,18 +1685,18 @@ server <- function(input, output, session) {
     SurvFeatChoices2 <- c(metacol_sampletype,metacol_feature,geneset_name,"QuartileCutP","MedianCutP","OptimalCutP","TopBottomCutP","UserCutP")
     
     if (length(unique(meta[,metacol_sampletype])) > 1) {
-      if (input$SampleTypeSelection != "All_Sample_Types") {
+      if (input$SampleTypeSelection != "Show All Sample Types") {
         
-        if (input$FeatureSelection != "All_Features") {
+        if (input$FeatureSelection != "Show All Samples") {
           SurvFeatChoices <- SurvFeatChoices[-which(SurvFeatChoices == input$FeatureSelection)]
         }
         selectInput("SurvivalFeatureBi1","Select Feature 1:",
                     choices = SurvFeatChoices, selected = "MedianCutP")
         
       }
-      else if (input$SampleTypeSelection == "All_Sample_Types") {
+      else if (input$SampleTypeSelection == "Show All Sample Types") {
         
-        if (input$FeatureSelection != "All_Features") {
+        if (input$FeatureSelection != "Show All Samples") {
           SurvFeatChoices2 <- SurvFeatChoices2[-which(SurvFeatChoices2 == input$FeatureSelection)]
         }
         selectInput("SurvivalFeatureBi1","Select Feature 1:",
@@ -678,7 +1705,7 @@ server <- function(input, output, session) {
       }
     }
     else if (length(unique(meta[,metacol_sampletype])) <= 1) {
-      if (input$FeatureSelection != "All_Features") {
+      if (input$FeatureSelection != "Show All Samples") {
         SurvFeatChoices2 <- SurvFeatChoices2[-which(SurvFeatChoices2 == input$FeatureSelection)]
       }
       selectInput("SurvivalFeatureBi1","Select Feature 1:",
@@ -695,18 +1722,18 @@ server <- function(input, output, session) {
     SurvFeatChoices2 <- c(metacol_sampletype,metacol_feature,geneset_name,"QuartileCutP","MedianCutP","OptimalCutP","TopBottomCutP","UserCutP")
     
     if (length(unique(meta[,metacol_sampletype])) > 1) {
-      if (input$SampleTypeSelection != "All_Sample_Types") {
+      if (input$SampleTypeSelection != "Show All Sample Types") {
         
-        if (input$FeatureSelection != "All_Features") {
+        if (input$FeatureSelection != "Show All Samples") {
           SurvFeatChoices <- SurvFeatChoices[-which(SurvFeatChoices == input$FeatureSelection)]
         }
         selectInput("SurvivalFeatureBi2","Select Feature 2:",
                     choices = SurvFeatChoices, selected = PreSelect_SecondaryFeature)
         
       }
-      else if (input$SampleTypeSelection == "All_Sample_Types") {
+      else if (input$SampleTypeSelection == "Show All Sample Types") {
         
-        if (input$FeatureSelection != "All_Features") {
+        if (input$FeatureSelection != "Show All Samples") {
           SurvFeatChoices2 <- SurvFeatChoices2[-which(SurvFeatChoices2 == input$FeatureSelection)]
         }
         selectInput("SurvivalFeatureBi2","Select Feature 2:",
@@ -715,7 +1742,7 @@ server <- function(input, output, session) {
       }
     }
     else if (length(unique(meta[,metacol_sampletype])) <= 1) {
-      if (input$FeatureSelection != "All_Features") {
+      if (input$FeatureSelection != "Show All Samples") {
         SurvFeatChoices2 <- SurvFeatChoices2[-which(SurvFeatChoices2 == input$FeatureSelection)]
       }
       selectInput("SurvivalFeatureBi2","Select Feature 2:",
@@ -732,18 +1759,18 @@ server <- function(input, output, session) {
     SurvFeatChoices2 <- c(metacol_sampletype,metacol_feature,geneset_name,"QuartileCutP","MedianCutP","OptimalCutP","TopBottomCutP","UserCutP")
     
     if (length(unique(meta[,metacol_sampletype])) > 1) {
-      if (input$SampleTypeSelection != "All_Sample_Types") {
+      if (input$SampleTypeSelection != "Show All Sample Types") {
         
-        if (input$FeatureSelection != "All_Features") {
+        if (input$FeatureSelection != "Show All Samples") {
           SurvFeatChoices <- SurvFeatChoices[-which(SurvFeatChoices == input$FeatureSelection)]
         }
         selectInput("SurvivalFeatureBi1Inter","Select Feature 1:",
                     choices = SurvFeatChoices, selected = "MedianCutP")
         
       }
-      else if (input$SampleTypeSelection == "All_Sample_Types") {
+      else if (input$SampleTypeSelection == "Show All Sample Types") {
         
-        if (input$FeatureSelection != "All_Features") {
+        if (input$FeatureSelection != "Show All Samples") {
           SurvFeatChoices2 <- SurvFeatChoices2[-which(SurvFeatChoices2 == input$FeatureSelection)]
         }
         selectInput("SurvivalFeatureBi1Inter","Select Feature 1:",
@@ -752,7 +1779,7 @@ server <- function(input, output, session) {
       }
     }
     else if (length(unique(meta[,metacol_sampletype])) <= 1) {
-      if (input$FeatureSelection != "All_Features") {
+      if (input$FeatureSelection != "Show All Samples") {
         SurvFeatChoices2 <- SurvFeatChoices2[-which(SurvFeatChoices2 == input$FeatureSelection)]
       }
       selectInput("SurvivalFeatureBi1Inter","Select Feature 1:",
@@ -769,18 +1796,18 @@ server <- function(input, output, session) {
     SurvFeatChoices2 <- c(metacol_sampletype,metacol_feature,geneset_name,"QuartileCutP","MedianCutP","OptimalCutP","TopBottomCutP","UserCutP")
     
     if (length(unique(meta[,metacol_sampletype])) > 1) {
-      if (input$SampleTypeSelection != "All_Sample_Types") {
+      if (input$SampleTypeSelection != "Show All Sample Types") {
         
-        if (input$FeatureSelection != "All_Features") {
+        if (input$FeatureSelection != "Show All Samples") {
           SurvFeatChoices <- SurvFeatChoices[-which(SurvFeatChoices == input$FeatureSelection)]
         }
         selectInput("SurvivalFeatureBi2Inter","Select Feature 2:",
                     choices = SurvFeatChoices, selected = PreSelect_SecondaryFeature)
         
       }
-      else if (input$SampleTypeSelection == "All_Sample_Types") {
+      else if (input$SampleTypeSelection == "Show All Sample Types") {
         
-        if (input$FeatureSelection != "All_Features") {
+        if (input$FeatureSelection != "Show All Samples") {
           SurvFeatChoices2 <- SurvFeatChoices2[-which(SurvFeatChoices2 == input$FeatureSelection)]
         }
         selectInput("SurvivalFeatureBi2Inter","Select Feature 2:",
@@ -789,7 +1816,7 @@ server <- function(input, output, session) {
       }
     }
     else if (length(unique(meta[,metacol_sampletype])) <= 1) {
-      if (input$FeatureSelection != "All_Features") {
+      if (input$FeatureSelection != "Show All Samples") {
         SurvFeatChoices2 <- SurvFeatChoices2[-which(SurvFeatChoices2 == input$FeatureSelection)]
       }
       selectInput("SurvivalFeatureBi2Inter","Select Feature 2:",
@@ -808,18 +1835,18 @@ server <- function(input, output, session) {
     SurvFeatChoices2 <- c(metacol_sampletype,metacol_feature,geneset_name,"QuartileCutP","MedianCutP","OptimalCutP","TopBottomCutP","UserCutP")
     
     if (length(unique(meta[,metacol_sampletype])) > 1) {
-      if (input$SampleTypeSelection != "All_Sample_Types") {
+      if (input$SampleTypeSelection != "Show All Sample Types") {
         
-        if (input$FeatureSelection != "All_Features") {
+        if (input$FeatureSelection != "Show All Samples") {
           SurvFeatChoices <- SurvFeatChoices[-which(SurvFeatChoices == input$FeatureSelection)]
         }
         selectInput("SurvivalFeature","Select Feature(s):",
                     choices = SurvFeatChoices, multiple = T, selected = "MedianCutP")
         
       }
-      else if (input$SampleTypeSelection == "All_Sample_Types") {
+      else if (input$SampleTypeSelection == "Show All Sample Types") {
         
-        if (input$FeatureSelection != "All_Features") {
+        if (input$FeatureSelection != "Show All Samples") {
           SurvFeatChoices2 <- SurvFeatChoices2[-which(SurvFeatChoices2 == input$FeatureSelection)]
         }
         selectInput("SurvivalFeature","Select Feature(s):",
@@ -828,7 +1855,7 @@ server <- function(input, output, session) {
       }
     }
     else if (length(unique(meta[,metacol_sampletype])) <= 1) {
-      if (input$FeatureSelection != "All_Features") {
+      if (input$FeatureSelection != "Show All Samples") {
         SurvFeatChoices2 <- SurvFeatChoices2[-which(SurvFeatChoices2 == input$FeatureSelection)]
       }
       selectInput("SurvivalFeature","Select Feature(s):",
@@ -1103,7 +2130,7 @@ server <- function(input, output, session) {
     ## Only show if more than one option
     if (length(metacol_survtime > 1)) {
       
-      selectInput("SurvivalType_time","Select Survival Time Data:", choices = metacol_survtime)
+      selectInput("SurvivalType_time","Survival Time Data:", choices = metacol_survtime)
       
     }
     
@@ -1115,7 +2142,7 @@ server <- function(input, output, session) {
     ## Only show if more than one option
     if (length(metacol_survid > 1)) {
       
-      selectInput("SurvivalType_id","Select Survival ID Data:", choices = metacol_survid)
+      selectInput("SurvivalType_id","Survival ID Data:", choices = metacol_survid)
       
     }
     
@@ -1127,13 +2154,13 @@ server <- function(input, output, session) {
     
     if (length(unique(meta[,metacol_sampletype])) > 1) {
       
-      if (input$SampleTypeSelection != "All_Sample_Types") {
+      if (input$SampleTypeSelection != "Show All Sample Types") {
         
         selectInput("BoxplotFeature","Select Feature:",
                     choices = metacol_feature)
         
       }
-      else if (input$SampleTypeSelection == "All_Sample_Types") {
+      else if (input$SampleTypeSelection == "Show All Sample Types") {
         
         selectInput("BoxplotFeature","Select Feature:",
                     choices = c(metacol_sampletype,metacol_feature))
@@ -1155,13 +2182,13 @@ server <- function(input, output, session) {
     
     if (length(unique(meta[,metacol_sampletype])) > 1) {
       
-      if (input$SampleTypeSelection != "All_Sample_Types") {
+      if (input$SampleTypeSelection != "Show All Sample Types") {
         
         selectInput("HeatmapFeature","Select Feature:",
                     choices = metacol_feature)
         
       }
-      else if (input$SampleTypeSelection == "All_Sample_Types") {
+      else if (input$SampleTypeSelection == "Show All Sample Types") {
         
         selectInput("HeatmapFeature","Select Feature:",
                     choices = c(metacol_sampletype,metacol_feature))
@@ -1181,7 +2208,7 @@ server <- function(input, output, session) {
   ## Select ssGSEA function scoring method
   output$rendScoreMethodBox <- renderUI({
     
-    selectInput("ScoreMethod","Select Scoring Method",choices = c("ssgsea","gsva","zscore","plage"))
+    selectInput("ScoreMethod","Scoring Method",choices = c("ssgsea","gsva","zscore","plage"))
     
   })
   
@@ -1316,27 +2343,27 @@ server <- function(input, output, session) {
   
   output$rendQuartHRtab <- renderUI({
     
-    div(withSpinner(tableOutput("SQuartileHRtab"), type = 7, size = 0.5), style = "font-size:12px")
+    div(shinycssloaders::withSpinner(tableOutput("SQuartileHRtab"), type = 7, size = 0.5), style = "font-size:12px")
     
   })
   output$rendBINHRtab <- renderUI({
     
-    div(withSpinner(tableOutput("SBinaryHRtab"), type = 7, size = 0.5), style = "font-size:12px")
+    div(shinycssloaders::withSpinner(tableOutput("SBinaryHRtab"), type = 7, size = 0.5), style = "font-size:12px")
     
   })
   output$rendQuantHRtab <- renderUI({
     
-    div(withSpinner(tableOutput("SQuantileHRtab"), type = 7, size = 0.5), style = "font-size:12px")
+    div(shinycssloaders::withSpinner(tableOutput("SQuantileHRtab"), type = 7, size = 0.5), style = "font-size:12px")
     
   })
   output$rendQuantHRtab2 <- renderUI({
     
-    div(withSpinner(tableOutput("SQuantileHR2tab"), type = 7, size = 0.5), style = "font-size:12px")
+    div(shinycssloaders::withSpinner(tableOutput("SQuantileHR2tab"), type = 7, size = 0.5), style = "font-size:12px")
     
   })
   output$rendCutPointHRtab <- renderUI({
     
-    div(withSpinner(tableOutput("CutPointHRtab"), type = 7, size = 0.5), style = "font-size:12px")
+    div(shinycssloaders::withSpinner(tableOutput("CutPointHRtab"), type = 7, size = 0.5), style = "font-size:12px")
     
   })
   
@@ -1448,13 +2475,13 @@ server <- function(input, output, session) {
     
     if (length(unique(meta[,metacol_sampletype])) > 1) {
       
-      if (input$SampleTypeSelection != "All_Sample_Types") {
+      if (input$SampleTypeSelection != "Show All Sample Types") {
         
         selectInput("ScatterFeature","Select Feature:",
                     choices = metacol_feature)
         
       }
-      else if (input$SampleTypeSelection == "All_Sample_Types") {
+      else if (input$SampleTypeSelection == "Show All Sample Types") {
         
         selectInput("ScatterFeature","Select Feature:",
                     choices = c(metacol_sampletype,metacol_feature))
@@ -1479,9 +2506,9 @@ server <- function(input, output, session) {
       geneset_name <- names(geneset)
       
       if (length(unique(meta[,metacol_sampletype])) > 1) {
-        if (input$SampleTypeSelection != "All_Sample_Types") {
+        if (input$SampleTypeSelection != "Show All Sample Types") {
           
-          if (input$FeatureSelection != "All_Features") {
+          if (input$FeatureSelection != "Show All Samples") {
             metacol_feature <- metacol_feature[-which(metacol_feature == input$FeatureSelection)]
           }
           metacol_feature <- c(metacol_feature,geneset_name,"QuartileCutP","MedianCutP","OptimalCutP","TopBottomCutP","UserCutP")
@@ -1490,11 +2517,11 @@ server <- function(input, output, session) {
                       choices = metacol_feature, selected = metacol_survid[1])
           
         }
-        else if (input$SampleTypeSelection == "All_Sample_Types") {
+        else if (input$SampleTypeSelection == "Show All Sample Types") {
           
           
           SurvFeatChoices2 <- c(metacol_sampletype,metacol_feature,geneset_name,"QuartileCutP","MedianCutP","OptimalCutP","TopBottomCutP","UserCutP")
-          if (input$FeatureSelection != "All_Features") {
+          if (input$FeatureSelection != "Show All Samples") {
             SurvFeatChoices2 <- SurvFeatChoices2[-which(SurvFeatChoices2 == input$FeatureSelection)]
           }
           SurvFeatChoices2 <- c(SurvFeatChoices2,metacol_survid)
@@ -1505,7 +2532,7 @@ server <- function(input, output, session) {
       }
       else if (length(unique(meta[,metacol_sampletype])) <= 1) {
         SurvFeatChoices2 <- c(metacol_sampletype,metacol_feature,geneset_name,"QuartileCutP","MedianCutP","OptimalCutP","TopBottomCutP","UserCutP")
-        if (input$FeatureSelection != "All_Features") {
+        if (input$FeatureSelection != "Show All Samples") {
           SurvFeatChoices2 <- SurvFeatChoices2[-which(SurvFeatChoices2 == input$FeatureSelection)]
         }
         SurvFeatChoices2 <- c(SurvFeatChoices2,metacol_survid)
@@ -1533,7 +2560,7 @@ server <- function(input, output, session) {
   #  if (length(unique(meta[,metacol_sampletype])) > 1) {
   #    
   #    SampleTypeChoices <- unique(meta[,metacol_sampletype])
-  #    SampleTypeChoices <- c(SampleTypeChoices,"All_Sample_Types")
+  #    SampleTypeChoices <- c(SampleTypeChoices,"Show All Sample Types")
   #    selectInput("SampleTypeSelection_lasso",paste("Select Sample Type (",metacol_sampletype,"):",sep = ""),
   #                choices = SampleTypeChoices, selected = SampleType_Selec$SampleType)
   #    
@@ -1550,15 +2577,15 @@ server <- function(input, output, session) {
   #  
   #  if (length(unique(meta[,metacol_sampletype])) > 1) {
   #    
-  #    if (input$SampleTypeSelection == "All_Sample_Types") {
+  #    if (input$SampleTypeSelection == "Show All Sample Types") {
   #      
-  #      FeatureChoices <- c(metacol_sampletype,metacol_feature,"All_Features")
+  #      FeatureChoices <- c(metacol_sampletype,metacol_feature,"Show All Samples")
   #      selectInput("FeatureSelection_lasso","Select Feature:", choices = FeatureChoices, selected = Feature_Selec$Feature)
   #      
   #    }
-  #    else if (input$SampleTypeSelection != "All_Sample_Types") {
+  #    else if (input$SampleTypeSelection != "Show All Sample Types") {
   #      
-  #      FeatureChoices <- c(metacol_feature,"All_Features")
+  #      FeatureChoices <- c(metacol_feature,"Show All Samples")
   #      selectInput("FeatureSelection_lasso","Select Feature:", choices = FeatureChoices, selected = Feature_Selec$Feature)
   #      
   #    }
@@ -1566,7 +2593,7 @@ server <- function(input, output, session) {
   #  }
   #  else if (length(unique(meta[,metacol_sampletype])) <= 1) {
   #    
-  #    FeatureChoices <- c(metacol_feature,"All_Features")
+  #    FeatureChoices <- c(metacol_feature,"Show All Samples")
   #    selectInput("FeatureSelection_lasso","Select Feature:", choices = FeatureChoices, selected = Feature_Selec$Feature)
   #    
   #  }
@@ -1586,19 +2613,19 @@ server <- function(input, output, session) {
   #    SampleType <- input$SampleTypeSelection_lasso
   #  }
   #  if (length(unique(meta[,metacol_sampletype])) <= 1) {
-  #    SampleType <- "All_Sample_Types"
+  #    SampleType <- "Show All Sample Types"
   #  }
   #  #SampleType <- input$SampleTypeSelection
   #  Feature <- input$FeatureSelection_lasso
   #  
-  #  if (SampleType == "All_Sample_Types") {
+  #  if (SampleType == "Show All Sample Types") {
   #    meta <- meta
   #  }
-  #  if (SampleType != "All_Sample_Types") {
+  #  if (SampleType != "Show All Sample Types") {
   #    meta <- meta[which(meta[,metacol_sampletype] == SampleType),]
   #  }
   #  
-  #  if (Feature != "All_Features") {
+  #  if (Feature != "Show All Samples") {
   #    
   #    SubFeatureChoices <- unique(meta[,Feature])
   #    # Sort options, will put 1,TRUE,yes before 0,FASLE,no, so the 'positive' value is the initial selected - puts NA last
@@ -1721,12 +2748,12 @@ server <- function(input, output, session) {
   #
   #output$rendLassoTrainHRtab <- renderUI({
   #  
-  #  div(withSpinner(tableOutput("LassoTrainHRtab"), type = 7, size = 0.5), style = "font-size:12px")
+  #  div(shinycssloaders::withSpinner(tableOutput("LassoTrainHRtab"), type = 7, size = 0.5), style = "font-size:12px")
   #  
   #})
   #output$rendLassoTestHRtab <- renderUI({
   #  
-  #  div(withSpinner(tableOutput("LassoTestHRtab"), type = 7, size = 0.5), style = "font-size:12px")
+  #  div(shinycssloaders::withSpinner(tableOutput("LassoTestHRtab"), type = 7, size = 0.5), style = "font-size:12px")
   #  
   #})
   
@@ -1770,11 +2797,11 @@ server <- function(input, output, session) {
     }
     
     metaCols <- colnames(meta)[1] #select sample name column automatically
-    if (Feature == "All_Features") {
+    if (Feature == "Show All Samples") {
       #userMetaCols <- userMetaCols[userMetaCols != Feature] #remove condition column from user selection because it is automatically added
       metaCols <- c(metaCols,surv_time_col,surv_id_col,userMetaCols) #combine column names selected
     }
-    else if (Feature != "All_Features") {
+    else if (Feature != "Show All Samples") {
       userMetaCols <- userMetaCols[userMetaCols != Feature] #remove condition column from user selection because it is automatically added
       metaCols <- c(metaCols,surv_time_col,surv_id_col,Feature,userMetaCols) #combine column names selected
     }
@@ -1934,7 +2961,7 @@ server <- function(input, output, session) {
     
     # If user provides GMT file
     if (ext == "gmt") {
-      gmt <- read.gmt(gs.u$datapath)
+      gmt <- clusterProfiler::read.gmt(gs.u$datapath)
       uGS_table <- as.data.frame(unique(gmt[,1]))
       colnames(uGS_table)[1] <- "GeneSet"
     }
@@ -1948,7 +2975,7 @@ server <- function(input, output, session) {
     
     # If user provides tab-delim two-col file
     else {
-      gmt <- as.data.frame(read_delim(gs.u$datapath, delim = '\t'))
+      gmt <- as.data.frame(readr::read_delim(gs.u$datapath, delim = '\t'))
       uGS_table <- as.data.frame(unique(gmt[,1]))
       colnames(uGS_table)[1] <- "GeneSet"
     }
@@ -1988,7 +3015,7 @@ server <- function(input, output, session) {
     
     # If user provides GMT file
     if (ext == "gmt") {
-      gmt <- read.gmt(gs.u$datapath)
+      gmt <- clusterProfiler::read.gmt(gs.u$datapath)
       colnames(gmt) <- c("term","gene")
       gs_u <- list()
       for (i in unique(gmt[,1])){
@@ -2004,7 +3031,7 @@ server <- function(input, output, session) {
     
     # If user provides tab-delim two-col file
     else {
-      gmt <- as.data.frame(read_delim(gs.u$datapath, delim = '\t'))
+      gmt <- as.data.frame(readr::read_delim(gs.u$datapath, delim = '\t'))
       colnames(gmt) <- c("term","gene")
       gs_u <- list()
       for (i in unique(gmt[,1])){
@@ -2068,7 +3095,7 @@ server <- function(input, output, session) {
     
   })
   
-  ## Meta subset reactive - "All Primary features" not working yet
+  ## Meta subset reactive
   metaSub <- reactive({
     
     req(input$FeatureSelection)
@@ -2077,22 +3104,30 @@ server <- function(input, output, session) {
       SampleType <- input$SampleTypeSelection
     }
     if (length(unique(meta[,metacol_sampletype])) <= 1) {
-      SampleType <- "All_Sample_Types"
+      SampleType <- "Show All Sample Types"
     }
     Feature <- input$FeatureSelection
     SubFeature <- input$subFeatureSelection
     
-    if (SampleType == "All_Sample_Types") {
+    if (SampleType == "Show All Sample Types") {
       meta <- meta
     }
-    if (SampleType != "All_Sample_Types") {
+    if (SampleType != "Show All Sample Types") {
       meta <- meta[which(meta[,metacol_sampletype] == SampleType),]
     }
     
-    if (Feature != "All_Features") {
+    if (Feature != "Show All Samples") {
+      #if (input$MainFeatContCheck == T) {
+      #  meta[,paste0(Feature,"_RawScore")] <- meta[,Feature]
+      #  meta[,Feature] <- highlow(meta[,Feature])
+      #  meta[,Feature] <- gsub("High",paste0(Feature,"_High_AboveMedian"),meta[,Feature])
+      #  meta[,Feature] <- gsub("Low",paste0(Feature,"_Low_BelowMedian"),meta[,Feature])
+      #  meta <- meta[which(meta[,Feature] == SubFeature),]
+      #} else {
       meta <- meta[which(meta[,Feature] == SubFeature),]
+      #}
     }
-    if (Feature == "All_Features") {
+    if (Feature == "Show All Samples") {
       meta <- meta
     }
     meta
@@ -2126,7 +3161,7 @@ server <- function(input, output, session) {
     
     ## Re-subset expression matrix
     samples <- meta[,1]
-    expr_sub <- expr[,colnames(expr) %in% samples]
+    expr_sub <- expr[,colnames(expr) %in% samples, drop = F]
     expr_mat <- as.matrix(expr_sub)
     rownames(expr_mat) <- rownames(expr_sub)
     colnames(expr_mat) <- colnames(expr_sub)
@@ -2207,7 +3242,7 @@ server <- function(input, output, session) {
     
     if (length(meta_ssgsea_sdf[,4][meta_ssgsea_sdf[,4] > 0])/length(meta_ssgsea_sdf[,4]) > 0.01) {
       if (length(meta_ssgsea_sdf[,4]) > 1) {
-        res.cut <- surv_cutpoint(meta_ssgsea_sdf,time = surv_time_col, event = surv_id_col, variable = geneset_name, minprop = 0.01)
+        res.cut <- survminer::surv_cutpoint(meta_ssgsea_sdf,time = surv_time_col, event = surv_id_col, variable = geneset_name, minprop = 0.01)
         cutp <- res.cut$cutpoint[["cutpoint"]]
         res.cat <- surv_categorize(res.cut)
         ssGSEA$OptimalCutP <- res.cat[,3]
@@ -2280,7 +3315,7 @@ server <- function(input, output, session) {
     tab_df <- as.data.frame(tab)
     
     tab_df <- tab_df %>%
-      select(label,estimate,ci,p.value)
+      dplyr::select(label,estimate,ci,p.value)
     colnames(tab_df) <- c("Characteristic","Hazard Ratio","95% Confidence Interval","P.Value")
     
     tab_df
@@ -2317,28 +3352,28 @@ server <- function(input, output, session) {
     
     ## determine Feature and Sample Type label
     if (length(unique(meta[,metacol_sampletype])) > 1) {
-      if (SampleType == "All_Sample_Types") {
-        if (Feature == "All_Features") {
+      if (SampleType == "Show All Sample Types") {
+        if (Feature == "Show All Samples") {
           SampleTypeLab <- "All Features in All Patients\n"
         }
-        if (Feature != "All_Features") {
+        if (Feature != "Show All Samples") {
           SampleTypeLab <- paste(Feature," in All Patients\n")
         }
       }
       else {
-        if (Feature == "All_Features") {
+        if (Feature == "Show All Samples") {
           SampleTypeLab <- paste("All Features (",SampleType,") Patients\n",sep = "")
         }
-        if (Feature != "All_Features") {
+        if (Feature != "Show All Samples") {
           SampleTypeLab <- paste(Feature," (",SampleType,") Patients\n",sep = "")
         }
       }
     }
     if (length(unique(meta[,metacol_sampletype])) <= 1) {
-      if (Feature == "All_Features") {
+      if (Feature == "Show All Samples") {
         SampleTypeLab <- "All Features in All Patients\n"
       }
-      if (Feature != "All_Features") {
+      if (Feature != "Show All Samples") {
         SampleTypeLab <- paste(Feature," in All Patients\n")
       }
     }
@@ -2381,26 +3416,26 @@ server <- function(input, output, session) {
     }
     
     ## Generate plot
-    ggsurv <- ggsurvplot(fit, data = meta_ssgsea_sdf, risk.table = TRUE,
-                         title = SurvPlotTitle,
-                         xscale = c("d_y"),
-                         break.time.by=breakTime,
-                         xlab = "Years", 
-                         ylab = paste(SurvDateType,"Survival Probability"),
-                         submain = "Based on Kaplan-Meier estimates",
-                         caption = "created with survminer",
-                         pval=show_pval,
-                         conf.int = ShowConfInt,
-                         ggtheme = theme_bw(),
-                         font.title = c(16, "bold"),
-                         font.submain = c(12, "italic"),
-                         font.caption = c(12, "plain"),
-                         font.x = c(14, "plain"),
-                         font.y = c(14, "plain"),
-                         font.tickslab = c(12, "plain"),
-                         legend = showLegend,
-                         risk.table.height = 0.20,
-                         surv.median.line = showMedSurv
+    ggsurv <- survminer::ggsurvplot(fit, data = meta_ssgsea_sdf, risk.table = TRUE,
+                                    title = SurvPlotTitle,
+                                    xscale = c("d_y"),
+                                    break.time.by=breakTime,
+                                    xlab = "Years", 
+                                    ylab = paste(SurvDateType,"Survival Probability"),
+                                    submain = "Based on Kaplan-Meier estimates",
+                                    caption = "created with survminer",
+                                    pval=show_pval,
+                                    conf.int = ShowConfInt,
+                                    ggtheme = theme_bw(),
+                                    font.title = c(16, "bold"),
+                                    font.submain = c(12, "italic"),
+                                    font.caption = c(12, "plain"),
+                                    font.x = c(14, "plain"),
+                                    font.y = c(14, "plain"),
+                                    font.tickslab = c(12, "plain"),
+                                    legend = showLegend,
+                                    risk.table.height = 0.20,
+                                    surv.median.line = showMedSurv
     )
     if (showMedSurv != "none") {
       MedSurvItem <- ggsurv[["plot"]][["layers"]][length(ggsurv[["plot"]][["layers"]])]
@@ -2507,12 +3542,12 @@ server <- function(input, output, session) {
     SurvDateType <- sub("\\..*","",surv_time_col)
     
     ## Determine Feature and sub feature
-    if (Feature != "All_Features") {
+    if (Feature != "Show All Samples") {
       SubFeature <- input$subFeatureSelection
       Feature <- paste("<b>",Feature,"</b> - <b>",SubFeature,"</b></li>",sep = "")
       line2 <- paste("<li>The dataset is filtered by ",Feature,sep = "")
     }
-    if (Feature == "All_Features") {
+    if (Feature == "Show All Samples") {
       line2 <- NULL
     }
     ## determine Sample Type
@@ -2521,10 +3556,10 @@ server <- function(input, output, session) {
     }
     else if (is.null(metacol_sampletype) == F) {
       if (length(unique(meta[,metacol_sampletype])) > 1) {
-        if (input$SampleTypeSelection == "All_Sample_Types") {
+        if (input$SampleTypeSelection == "Show All Sample Types") {
           SampleType <- " of all sample types.</li>"
         }
-        else if (input$SampleTypeSelection != "All_Sample_Types") {
+        else if (input$SampleTypeSelection != "Show All Sample Types") {
           SampleType <- paste(" of <b>",input$SampleTypeSelection,"</b> Patients.</li>",sep = "")
         }
       }
@@ -2662,7 +3697,7 @@ server <- function(input, output, session) {
     tab_df <- as.data.frame(tab)
     
     tab_df <- tab_df %>%
-      select(label,estimate,ci,p.value)
+      dplyr::select(label,estimate,ci,p.value)
     colnames(tab_df) <- c("Characteristic","Hazard Ratio","95% Confidence Interval","P.Value")
     
     tab_df
@@ -2699,28 +3734,28 @@ server <- function(input, output, session) {
     
     ## determine Feature and Sample Type label
     if (length(unique(meta[,metacol_sampletype])) > 1) {
-      if (SampleType == "All_Sample_Types") {
-        if (Feature == "All_Features") {
+      if (SampleType == "Show All Sample Types") {
+        if (Feature == "Show All Samples") {
           SampleTypeLab <- "All Features in All Patients\n"
         }
-        if (Feature != "All_Features") {
+        if (Feature != "Show All Samples") {
           SampleTypeLab <- paste(Feature," in All Patients\n")
         }
       }
       else {
-        if (Feature == "All_Features") {
+        if (Feature == "Show All Samples") {
           SampleTypeLab <- paste("All Features (",SampleType,") Patients\n",sep = "")
         }
-        if (Feature != "All_Features") {
+        if (Feature != "Show All Samples") {
           SampleTypeLab <- paste(Feature," (",SampleType,") Patients\n",sep = "")
         }
       }
     }
     if (length(unique(meta[,metacol_sampletype])) <= 1) {
-      if (Feature == "All_Features") {
+      if (Feature == "Show All Samples") {
         SampleTypeLab <- "All Features in All Patients\n"
       }
-      if (Feature != "All_Features") {
+      if (Feature != "Show All Samples") {
         SampleTypeLab <- paste(Feature," in All Patients\n")
       }
     }
@@ -2762,26 +3797,26 @@ server <- function(input, output, session) {
     }
     
     ## Generate plot
-    ggsurv <- ggsurvplot(fit, data = meta_ssgsea_sdf, risk.table = TRUE,
-                         title = SurvPlotTitle,
-                         xscale = c("d_y"),
-                         break.time.by=breakTime,
-                         xlab = "Years", 
-                         ylab = paste(SurvDateType,"Survival Probability"),
-                         submain = "Based on Kaplan-Meier estimates",
-                         caption = "created with survminer",
-                         pval=show_pval,
-                         conf.int = ShowConfInt,
-                         ggtheme = theme_bw(),
-                         font.title = c(16, "bold"),
-                         font.submain = c(12, "italic"),
-                         font.caption = c(12, "plain"),
-                         font.x = c(14, "plain"),
-                         font.y = c(14, "plain"),
-                         font.tickslab = c(12, "plain"),
-                         legend = showLegend,
-                         risk.table.height = 0.20,
-                         surv.median.line = showMedSurv
+    ggsurv <- survminer::ggsurvplot(fit, data = meta_ssgsea_sdf, risk.table = TRUE,
+                                    title = SurvPlotTitle,
+                                    xscale = c("d_y"),
+                                    break.time.by=breakTime,
+                                    xlab = "Years", 
+                                    ylab = paste(SurvDateType,"Survival Probability"),
+                                    submain = "Based on Kaplan-Meier estimates",
+                                    caption = "created with survminer",
+                                    pval=show_pval,
+                                    conf.int = ShowConfInt,
+                                    ggtheme = theme_bw(),
+                                    font.title = c(16, "bold"),
+                                    font.submain = c(12, "italic"),
+                                    font.caption = c(12, "plain"),
+                                    font.x = c(14, "plain"),
+                                    font.y = c(14, "plain"),
+                                    font.tickslab = c(12, "plain"),
+                                    legend = showLegend,
+                                    risk.table.height = 0.20,
+                                    surv.median.line = showMedSurv
     )
     if (showMedSurv != "none") {
       MedSurvItem <- ggsurv[["plot"]][["layers"]][length(ggsurv[["plot"]][["layers"]])]
@@ -2892,12 +3927,12 @@ server <- function(input, output, session) {
     SurvDateType <- sub("\\..*","",surv_time_col)
     
     ## Determine Feature and sub feature
-    if (Feature != "All_Features") {
+    if (Feature != "Show All Samples") {
       SubFeature <- input$subFeatureSelection
       Feature <- paste("<b>",Feature,"</b> - <b>",SubFeature,"</b></li>",sep = "")
       line2 <- paste("<li>The dataset is filtered by ",Feature,sep = "")
     }
-    if (Feature == "All_Features") {
+    if (Feature == "Show All Samples") {
       line2 <- NULL
     }
     ## determine Sample Type
@@ -2906,10 +3941,10 @@ server <- function(input, output, session) {
     }
     else if (is.null(metacol_sampletype) == F) {
       if (length(unique(meta[,metacol_sampletype])) > 1) {
-        if (input$SampleTypeSelection == "All_Sample_Types") {
+        if (input$SampleTypeSelection == "Show All Sample Types") {
           SampleType <- " of all sample types.</li>"
         }
-        else if (input$SampleTypeSelection != "All_Sample_Types") {
+        else if (input$SampleTypeSelection != "Show All Sample Types") {
           SampleType <- paste(" of <b>",input$SampleTypeSelection,"</b> Patients.</li>",sep = "")
         }
       }
@@ -3050,7 +4085,7 @@ server <- function(input, output, session) {
     tab_df <- as.data.frame(tab)
     
     tab_df <- tab_df %>%
-      select(label,estimate,ci,p.value)
+      dplyr::select(label,estimate,ci,p.value)
     colnames(tab_df) <- c("Characteristic","Hazard Ratio","95% Confidence Interval","P.Value")
     
     tab_df
@@ -3088,28 +4123,28 @@ server <- function(input, output, session) {
     
     ## determine Feature and Sample Type label
     if (length(unique(meta[,metacol_sampletype])) > 1) {
-      if (SampleType == "All_Sample_Types") {
-        if (Feature == "All_Features") {
+      if (SampleType == "Show All Sample Types") {
+        if (Feature == "Show All Samples") {
           SampleTypeLab <- "All Features in All Patients\n"
         }
-        if (Feature != "All_Features") {
+        if (Feature != "Show All Samples") {
           SampleTypeLab <- paste(Feature," in All Patients\n")
         }
       }
       else {
-        if (Feature == "All_Features") {
+        if (Feature == "Show All Samples") {
           SampleTypeLab <- paste("All Features (",SampleType,") Patients\n",sep = "")
         }
-        if (Feature != "All_Features") {
+        if (Feature != "Show All Samples") {
           SampleTypeLab <- paste(Feature," (",SampleType,") Patients\n",sep = "")
         }
       }
     }
     if (length(unique(meta[,metacol_sampletype])) <= 1) {
-      if (Feature == "All_Features") {
+      if (Feature == "Show All Samples") {
         SampleTypeLab <- "All Features in All Patients\n"
       }
-      if (Feature != "All_Features") {
+      if (Feature != "Show All Samples") {
         SampleTypeLab <- paste(Feature," in All Patients\n")
       }
     }
@@ -3151,26 +4186,26 @@ server <- function(input, output, session) {
     }
     
     ## Generate plot
-    ggsurv <- ggsurvplot(fit, data = meta_ssgsea_sdf, risk.table = TRUE,
-                         title = SurvPlotTitle,
-                         xscale = c("d_y"),
-                         break.time.by=breakTime,
-                         xlab = "Years", 
-                         ylab = paste(SurvDateType,"Survival Probability"),
-                         submain = "Based on Kaplan-Meier estimates",
-                         caption = "created with survminer",
-                         pval=show_pval,
-                         conf.int = ShowConfInt,
-                         ggtheme = theme_bw(),
-                         font.title = c(16, "bold"),
-                         font.submain = c(12, "italic"),
-                         font.caption = c(12, "plain"),
-                         font.x = c(14, "plain"),
-                         font.y = c(14, "plain"),
-                         font.tickslab = c(12, "plain"),
-                         legend = showLegend,
-                         risk.table.height = 0.20,
-                         surv.median.line = showMedSurv
+    ggsurv <- survminer::ggsurvplot(fit, data = meta_ssgsea_sdf, risk.table = TRUE,
+                                    title = SurvPlotTitle,
+                                    xscale = c("d_y"),
+                                    break.time.by=breakTime,
+                                    xlab = "Years", 
+                                    ylab = paste(SurvDateType,"Survival Probability"),
+                                    submain = "Based on Kaplan-Meier estimates",
+                                    caption = "created with survminer",
+                                    pval=show_pval,
+                                    conf.int = ShowConfInt,
+                                    ggtheme = theme_bw(),
+                                    font.title = c(16, "bold"),
+                                    font.submain = c(12, "italic"),
+                                    font.caption = c(12, "plain"),
+                                    font.x = c(14, "plain"),
+                                    font.y = c(14, "plain"),
+                                    font.tickslab = c(12, "plain"),
+                                    legend = showLegend,
+                                    risk.table.height = 0.20,
+                                    surv.median.line = showMedSurv
     )
     if (showMedSurv != "none") {
       MedSurvItem <- ggsurv[["plot"]][["layers"]][length(ggsurv[["plot"]][["layers"]])]
@@ -3211,12 +4246,12 @@ server <- function(input, output, session) {
     meta_ssgsea_sdf <- ssgsea_meta[,c("SampleName",surv_time_col,surv_id_col,geneset_name)]
     
     if (length(meta_ssgsea_sdf[,4][meta_ssgsea_sdf[,4] > 0])/length(meta_ssgsea_sdf[,4]) > 0.01) {
-      res.cut <- surv_cutpoint(meta_ssgsea_sdf,time = surv_time_col, event = surv_id_col, variable = geneset_name, minprop = 0.01)
+      res.cut <- survminer::surv_cutpoint(meta_ssgsea_sdf,time = surv_time_col, event = surv_id_col, variable = geneset_name, minprop = 0.01)
       cutp <- res.cut$cutpoint[["cutpoint"]]
       #res.cat <- surv_categorize(res.cut)
       #ssGSEA$OptimalCutP <- res.cat[,3]
       
-      res.cut <- surv_cutpoint(meta_ssgsea_sdf,time = surv_time_col, event = surv_id_col, variable = geneset_name)
+      res.cut <- survminer::surv_cutpoint(meta_ssgsea_sdf,time = surv_time_col, event = surv_id_col, variable = geneset_name)
       cutp <- round(res.cut$cutpoint[["cutpoint"]],3)
       
       
@@ -3288,12 +4323,12 @@ server <- function(input, output, session) {
     SurvDateType <- sub("\\..*","",surv_time_col)
     
     ## Determine Feature and sub feature
-    if (Feature != "All_Features") {
+    if (Feature != "Show All Samples") {
       SubFeature <- input$subFeatureSelection
       Feature <- paste("<b>",Feature,"</b> - <b>",SubFeature,"</b></li>",sep = "")
       line2 <- paste("<li>The dataset is filtered by ",Feature,sep = "")
     }
-    if (Feature == "All_Features") {
+    if (Feature == "Show All Samples") {
       line2 <- NULL
     }
     ## determine Sample Type
@@ -3302,10 +4337,10 @@ server <- function(input, output, session) {
     }
     else if (is.null(metacol_sampletype) == F) {
       if (length(unique(meta[,metacol_sampletype])) > 1) {
-        if (input$SampleTypeSelection == "All_Sample_Types") {
+        if (input$SampleTypeSelection == "Show All Sample Types") {
           SampleType <- " of all sample types.</li>"
         }
-        else if (input$SampleTypeSelection != "All_Sample_Types") {
+        else if (input$SampleTypeSelection != "Show All Sample Types") {
           SampleType <- paste(" of <b>",input$SampleTypeSelection,"</b> Patients.</li>",sep = "")
         }
       }
@@ -3446,7 +4481,7 @@ server <- function(input, output, session) {
     tab_df <- as.data.frame(tab)
     
     tab_df <- tab_df %>%
-      select(label,estimate,ci,p.value)
+      dplyr::select(label,estimate,ci,p.value)
     colnames(tab_df) <- c("Characteristic","Hazard Ratio","95% Confidence Interval","P.Value")
     
     tab_df
@@ -3483,28 +4518,28 @@ server <- function(input, output, session) {
     
     ## determine Feature and Sample Type label
     if (length(unique(meta[,metacol_sampletype])) > 1) {
-      if (SampleType == "All_Sample_Types") {
-        if (Feature == "All_Features") {
+      if (SampleType == "Show All Sample Types") {
+        if (Feature == "Show All Samples") {
           SampleTypeLab <- "All Features in All Patients\n"
         }
-        if (Feature != "All_Features") {
+        if (Feature != "Show All Samples") {
           SampleTypeLab <- paste(Feature," in All Patients\n")
         }
       }
       else {
-        if (Feature == "All_Features") {
+        if (Feature == "Show All Samples") {
           SampleTypeLab <- paste("All Features (",SampleType,") Patients\n",sep = "")
         }
-        if (Feature != "All_Features") {
+        if (Feature != "Show All Samples") {
           SampleTypeLab <- paste(Feature," (",SampleType,") Patients\n",sep = "")
         }
       }
     }
     if (length(unique(meta[,metacol_sampletype])) <= 1) {
-      if (Feature == "All_Features") {
+      if (Feature == "Show All Samples") {
         SampleTypeLab <- "All Features in All Patients\n"
       }
-      if (Feature != "All_Features") {
+      if (Feature != "Show All Samples") {
         SampleTypeLab <- paste(Feature," in All Patients\n")
       }
     }
@@ -3546,27 +4581,27 @@ server <- function(input, output, session) {
     }
     
     ## Generate plot
-    ggsurv <- ggsurvplot(fit, data = meta_ssgsea_sdf, risk.table = TRUE,
-                         title = SurvPlotTitle,
-                         xscale = c("d_y"),
-                         break.time.by=    breakTime <- 365.25
-                         ,
-                         xlab = "Years", 
-                         ylab = paste(SurvDateType,"Survival Probability"),
-                         submain = "Based on Kaplan-Meier estimates",
-                         caption = "created with survminer",
-                         pval=show_pval,
-                         conf.int = ShowConfInt,
-                         ggtheme = theme_bw(),
-                         font.title = c(16, "bold"),
-                         font.submain = c(12, "italic"),
-                         font.caption = c(12, "plain"),
-                         font.x = c(14, "plain"),
-                         font.y = c(14, "plain"),
-                         font.tickslab = c(12, "plain"),
-                         legend = showLegend,
-                         risk.table.height = 0.20,
-                         surv.median.line = showMedSurv
+    ggsurv <- survminer::ggsurvplot(fit, data = meta_ssgsea_sdf, risk.table = TRUE,
+                                    title = SurvPlotTitle,
+                                    xscale = c("d_y"),
+                                    break.time.by=    breakTime <- 365.25
+                                    ,
+                                    xlab = "Years", 
+                                    ylab = paste(SurvDateType,"Survival Probability"),
+                                    submain = "Based on Kaplan-Meier estimates",
+                                    caption = "created with survminer",
+                                    pval=show_pval,
+                                    conf.int = ShowConfInt,
+                                    ggtheme = theme_bw(),
+                                    font.title = c(16, "bold"),
+                                    font.submain = c(12, "italic"),
+                                    font.caption = c(12, "plain"),
+                                    font.x = c(14, "plain"),
+                                    font.y = c(14, "plain"),
+                                    font.tickslab = c(12, "plain"),
+                                    legend = showLegend,
+                                    risk.table.height = 0.20,
+                                    surv.median.line = showMedSurv
     )
     if (showMedSurv != "none") {
       MedSurvItem <- ggsurv[["plot"]][["layers"]][length(ggsurv[["plot"]][["layers"]])]
@@ -3679,12 +4714,12 @@ server <- function(input, output, session) {
     SurvDateType <- sub("\\..*","",surv_time_col)
     
     ## Determine Feature and sub feature
-    if (Feature != "All_Features") {
+    if (Feature != "Show All Samples") {
       SubFeature <- input$subFeatureSelection
       Feature <- paste("<b>",Feature,"</b> - <b>",SubFeature,"</b></li>",sep = "")
       line2 <- paste("<li>The dataset is filtered by ",Feature,sep = "")
     }
-    if (Feature == "All_Features") {
+    if (Feature == "Show All Samples") {
       line2 <- NULL
     }
     ## determine Sample Type
@@ -3693,10 +4728,10 @@ server <- function(input, output, session) {
     }
     else if (is.null(metacol_sampletype) == F) {
       if (length(unique(meta[,metacol_sampletype])) > 1) {
-        if (input$SampleTypeSelection == "All_Sample_Types") {
+        if (input$SampleTypeSelection == "Show All Sample Types") {
           SampleType <- " of all sample types.</li>"
         }
-        else if (input$SampleTypeSelection != "All_Sample_Types") {
+        else if (input$SampleTypeSelection != "Show All Sample Types") {
           SampleType <- paste(" of <b>",input$SampleTypeSelection,"</b> Patients.</li>",sep = "")
         }
       }
@@ -3827,7 +4862,7 @@ server <- function(input, output, session) {
     tab_df <- as.data.frame(tab)
     
     tab_df <- tab_df %>%
-      select(label,estimate,ci,p.value)
+      dplyr::select(label,estimate,ci,p.value)
     colnames(tab_df) <- c("Characteristic","Hazard Ratio","95% Confidence Interval","P.Value")
     
     tab_df
@@ -3864,28 +4899,28 @@ server <- function(input, output, session) {
     
     ## determine Feature and Sample Type label
     if (length(unique(meta[,metacol_sampletype])) > 1) {
-      if (SampleType == "All_Sample_Types") {
-        if (Feature == "All_Features") {
+      if (SampleType == "Show All Sample Types") {
+        if (Feature == "Show All Samples") {
           SampleTypeLab <- "All Features in All Patients\n"
         }
-        if (Feature != "All_Features") {
+        if (Feature != "Show All Samples") {
           SampleTypeLab <- paste(Feature," in All Patients\n")
         }
       }
       else {
-        if (Feature == "All_Features") {
+        if (Feature == "Show All Samples") {
           SampleTypeLab <- paste("All Features (",SampleType,") Patients\n",sep = "")
         }
-        if (Feature != "All_Features") {
+        if (Feature != "Show All Samples") {
           SampleTypeLab <- paste(Feature," (",SampleType,") Patients\n",sep = "")
         }
       }
     }
     if (length(unique(meta[,metacol_sampletype])) <= 1) {
-      if (Feature == "All_Features") {
+      if (Feature == "Show All Samples") {
         SampleTypeLab <- "All Features in All Patients\n"
       }
-      if (Feature != "All_Features") {
+      if (Feature != "Show All Samples") {
         SampleTypeLab <- paste(Feature," in All Patients\n")
       }
     }
@@ -3926,26 +4961,26 @@ server <- function(input, output, session) {
       breakTime <- NULL
     }
     ## Generate plot
-    ggsurv <- ggsurvplot(fit, data = meta_ssgsea_sdf, risk.table = TRUE,
-                         title = SurvPlotTitle,
-                         xscale = c("d_y"),
-                         break.time.by=breakTime,
-                         xlab = "Years", 
-                         ylab = paste(SurvDateType,"Survival Probability"),
-                         submain = "Based on Kaplan-Meier estimates",
-                         caption = "created with survminer",
-                         pval=show_pval,
-                         conf.int = ShowConfInt,
-                         ggtheme = theme_bw(),
-                         font.title = c(16, "bold"),
-                         font.submain = c(12, "italic"),
-                         font.caption = c(12, "plain"),
-                         font.x = c(14, "plain"),
-                         font.y = c(14, "plain"),
-                         font.tickslab = c(12, "plain"),
-                         legend = showLegend,
-                         risk.table.height = 0.20,
-                         surv.median.line = showMedSurv
+    ggsurv <- survminer::ggsurvplot(fit, data = meta_ssgsea_sdf, risk.table = TRUE,
+                                    title = SurvPlotTitle,
+                                    xscale = c("d_y"),
+                                    break.time.by=breakTime,
+                                    xlab = "Years", 
+                                    ylab = paste(SurvDateType,"Survival Probability"),
+                                    submain = "Based on Kaplan-Meier estimates",
+                                    caption = "created with survminer",
+                                    pval=show_pval,
+                                    conf.int = ShowConfInt,
+                                    ggtheme = theme_bw(),
+                                    font.title = c(16, "bold"),
+                                    font.submain = c(12, "italic"),
+                                    font.caption = c(12, "plain"),
+                                    font.x = c(14, "plain"),
+                                    font.y = c(14, "plain"),
+                                    font.tickslab = c(12, "plain"),
+                                    legend = showLegend,
+                                    risk.table.height = 0.20,
+                                    surv.median.line = showMedSurv
     )
     if (showMedSurv != "none") {
       MedSurvItem <- ggsurv[["plot"]][["layers"]][length(ggsurv[["plot"]][["layers"]])]
@@ -4048,12 +5083,12 @@ server <- function(input, output, session) {
     SurvDateType <- sub("\\..*","",surv_time_col)
     
     ## Determine Feature and sub feature
-    if (Feature != "All_Features") {
+    if (Feature != "Show All Samples") {
       SubFeature <- input$subFeatureSelection
       Feature <- paste("<b>",Feature,"</b> - <b>",SubFeature,"</b></li>",sep = "")
       line2 <- paste("<li>The dataset is filtered by ",Feature,sep = "")
     }
-    if (Feature == "All_Features") {
+    if (Feature == "Show All Samples") {
       line2 <- NULL
     }
     ## determine Sample Type
@@ -4062,10 +5097,10 @@ server <- function(input, output, session) {
     }
     else if (is.null(metacol_sampletype) == F) {
       if (length(unique(meta[,metacol_sampletype])) > 1) {
-        if (input$SampleTypeSelection == "All_Sample_Types") {
+        if (input$SampleTypeSelection == "Show All Sample Types") {
           SampleType <- " of all sample types.</li>"
         }
-        else if (input$SampleTypeSelection != "All_Sample_Types") {
+        else if (input$SampleTypeSelection != "Show All Sample Types") {
           SampleType <- paste(" of <b>",input$SampleTypeSelection,"</b> Patients.</li>",sep = "")
         }
       }
@@ -4248,7 +5283,7 @@ server <- function(input, output, session) {
     
     tab_df[is.na(tab_df)] <- ""
     tab_df <- tab_df %>%
-      select(label,n_obs,estimate,std.error,ci,p.value)
+      dplyr::select(label,n_obs,estimate,std.error,ci,p.value)
     tab_df[1,1] <- Feature
     colnames(tab_df) <- c("Variable","N","Hazard Ratio","Std. Error","95% Confidence Interval","P.Value")
     
@@ -4319,26 +5354,26 @@ server <- function(input, output, session) {
       breakTime <- NULL
     }
     ## Generate plot
-    ggsurv <- ggsurvplot(fit, data = meta_ssgsea_sdf, risk.table = TRUE,
-                         title = SurvPlotTitle,
-                         xscale = c("d_y"),
-                         break.time.by=breakTime,
-                         xlab = "Years", 
-                         ylab = paste(SurvDateType,"Survival Probability"),
-                         submain = "Based on Kaplan-Meier estimates",
-                         caption = "created with survminer",
-                         pval=show_pval,
-                         conf.int = ShowConfInt,
-                         ggtheme = theme_bw(),
-                         font.title = c(16, "bold"),
-                         font.submain = c(12, "italic"),
-                         font.caption = c(12, "plain"),
-                         font.x = c(14, "plain"),
-                         font.y = c(14, "plain"),
-                         font.tickslab = c(12, "plain"),
-                         legend = showLegend,
-                         risk.table.height = 0.20,
-                         surv.median.line = showMedSurv
+    ggsurv <- survminer::ggsurvplot(fit, data = meta_ssgsea_sdf, risk.table = TRUE,
+                                    title = SurvPlotTitle,
+                                    xscale = c("d_y"),
+                                    break.time.by=breakTime,
+                                    xlab = "Years", 
+                                    ylab = paste(SurvDateType,"Survival Probability"),
+                                    submain = "Based on Kaplan-Meier estimates",
+                                    caption = "created with survminer",
+                                    pval=show_pval,
+                                    conf.int = ShowConfInt,
+                                    ggtheme = theme_bw(),
+                                    font.title = c(16, "bold"),
+                                    font.submain = c(12, "italic"),
+                                    font.caption = c(12, "plain"),
+                                    font.x = c(14, "plain"),
+                                    font.y = c(14, "plain"),
+                                    font.tickslab = c(12, "plain"),
+                                    legend = showLegend,
+                                    risk.table.height = 0.20,
+                                    surv.median.line = showMedSurv
     )
     if (showMedSurv != "none") {
       MedSurvItem <- ggsurv[["plot"]][["layers"]][length(ggsurv[["plot"]][["layers"]])]
@@ -4391,10 +5426,10 @@ server <- function(input, output, session) {
     }
     else if (is.null(metacol_sampletype) == F) {
       if (length(unique(meta[,metacol_sampletype])) > 1) {
-        if (input$SampleTypeSelection == "All_Sample_Types") {
+        if (input$SampleTypeSelection == "Show All Sample Types") {
           SampleType <- " of all sample types.</li>"
         }
-        else if (input$SampleTypeSelection != "All_Sample_Types") {
+        else if (input$SampleTypeSelection != "Show All Sample Types") {
           SampleType <- paste(" of <b>",input$SampleTypeSelection,"</b> Patients.</li>",sep = "")
         }
       }
@@ -4404,12 +5439,12 @@ server <- function(input, output, session) {
     }
     
     ## Determine Feature and sub feature
-    if (Feature != "All_Features") {
+    if (Feature != "Show All Samples") {
       SubFeature <- input$subFeatureSelection
       Feature <- paste("<b>",Feature,"</b> - <b>",SubFeature,"</b></li>",sep = "")
       line2 <- paste("<li>The dataset is filtered by ",Feature,sep = "")
     }
-    else if (Feature == "All_Features") {
+    else if (Feature == "Show All Samples") {
       line2 <- NULL
     }
     if (contCheck == TRUE) {
@@ -4489,10 +5524,10 @@ server <- function(input, output, session) {
       meta_ssgsea_sdf <- UniVarFeat_react()
       Feature <- input$SingleSurvivalFeature
       forextFont <- input$ForestFontSize
-      forest <- ggforest(tab,
-                         data = meta_ssgsea_sdf,
-                         main = paste("Hazard Ratio Modeling: ",paste(Feature,collapse = ", "),sep = ""),
-                         fontsize = forextFont)
+      forest <- survminer::ggforest(tab,
+                                    data = meta_ssgsea_sdf,
+                                    main = paste("Hazard Ratio Modeling: ",paste(Feature,collapse = ", "),sep = ""),
+                                    fontsize = forextFont)
       forest
     }
     
@@ -4560,12 +5595,12 @@ server <- function(input, output, session) {
       TickFont <- input$linTickFont
       linpredict <- input$linPredict1
       
-      p <- ggcoxdiagnostics(tab,
-                            type = residType,
-                            sline = T,
-                            sline.se = T,
-                            ggtheme = theme_minimal(),
-                            ox.scale = linpredict)
+      p <- survminer::ggcoxdiagnostics(tab,
+                                       type = residType,
+                                       sline = T,
+                                       sline.se = T,
+                                       ggtheme = theme_minimal(),
+                                       ox.scale = linpredict)
       p <- ggpar(p,
                  font.x = AxisFont,
                  font.y = AxisFont,
@@ -4760,7 +5795,7 @@ server <- function(input, output, session) {
     
     tab_df[is.na(tab_df)] <- ""
     tab_df <- tab_df %>%
-      select(label,n_obs,estimate,std.error,ci,p.value)
+      dplyr::select(label,n_obs,estimate,std.error,ci,p.value)
     colnames(tab_df) <- c("Variable","N","Hazard Ratio","Std. Error","95% Confidence Interval","P.Value")
     
     tab_df
@@ -4858,10 +5893,10 @@ server <- function(input, output, session) {
   #  }
   #  else if (is.null(metacol_sampletype) == F) {
   #    if (length(unique(meta[,metacol_sampletype])) > 1) {
-  #      if (input$SampleTypeSelection == "All_Sample_Types") {
+  #      if (input$SampleTypeSelection == "Show All Sample Types") {
   #        SampleType <- " of all sample types.</li>"
   #      }
-  #      else if (input$SampleTypeSelection != "All_Sample_Types") {
+  #      else if (input$SampleTypeSelection != "Show All Sample Types") {
   #        SampleType <- paste(" of <b>",input$SampleTypeSelection,"</b> Patients.</li>",sep = "")
   #      }
   #    }
@@ -4871,12 +5906,12 @@ server <- function(input, output, session) {
   #  }
   #  
   #  ## Determine Feature and sub feature
-  #  if (Feature != "All_Features") {
+  #  if (Feature != "Show All Samples") {
   #    SubFeature <- input$subFeatureSelection
   #    Feature <- paste("<b>",Feature,"</b> - <b>",SubFeature,"</b></li>",sep = "")
   #    line2 <- paste("<li>The dataset is filtered by ",Feature,sep = "")
   #  }
-  #  if (Feature == "All_Features") {
+  #  if (Feature == "Show All Samples") {
   #    line2 <- NULL
   #  }
   #  
@@ -4944,10 +5979,10 @@ server <- function(input, output, session) {
       forextFont <- input$ForestFontSize
       
       
-      forest <- ggforest(tab,
-                         data = meta_ssgsea_sdf,
-                         main = paste("Hazard Ratio Modeling: ",paste(Feature1,"+",Feature2,sep = ""),sep = ""),
-                         fontsize = forextFont)
+      forest <- survminer::ggforest(tab,
+                                    data = meta_ssgsea_sdf,
+                                    main = paste("Hazard Ratio Modeling: ",paste(Feature1,"+",Feature2,sep = ""),sep = ""),
+                                    fontsize = forextFont)
       forest
       
     }
@@ -5013,22 +6048,22 @@ server <- function(input, output, session) {
       }
       Feature2 <- gsubCheck(Feature2)
       Feat2Var <- gsubCheck(Feat2Var)
-    
-    
-    colnames(meta_ssgsea_sdf)[which(colnames(meta_ssgsea_sdf) == surv_time_col)] <- "time"
-    colnames(meta_ssgsea_sdf)[which(colnames(meta_ssgsea_sdf) == surv_id_col)] <- "ID"
-    
-    meta_ssgsea_sdf
-    
-    Feature1 <- colnames(meta_ssgsea_sdf)[4]
-    Feature2 <- colnames(meta_ssgsea_sdf)[5]
-    
-    form <- paste("Surv(time,ID) ~ ",paste(Feature1,"+",Feature2,sep = ""),sep = "")
-    form2 <- as.formula(form)
-    tab <- eval(substitute(coxph(form2,data = meta_ssgsea_sdf)))
-    
-    tab
-    
+      
+      
+      colnames(meta_ssgsea_sdf)[which(colnames(meta_ssgsea_sdf) == surv_time_col)] <- "time"
+      colnames(meta_ssgsea_sdf)[which(colnames(meta_ssgsea_sdf) == surv_id_col)] <- "ID"
+      
+      meta_ssgsea_sdf
+      
+      Feature1 <- colnames(meta_ssgsea_sdf)[4]
+      Feature2 <- colnames(meta_ssgsea_sdf)[5]
+      
+      form <- paste("Surv(time,ID) ~ ",paste(Feature1,"+",Feature2,sep = ""),sep = "")
+      form2 <- as.formula(form)
+      tab <- eval(substitute(coxph(form2,data = meta_ssgsea_sdf)))
+      
+      tab
+      
     }
     
   })
@@ -5046,12 +6081,12 @@ server <- function(input, output, session) {
       MainFont <- input$linMainFont
       TickFont <- input$linTickFont
       
-      p <- ggcoxdiagnostics(tab,
-                            type = residType,
-                            sline = T,
-                            sline.se = T,
-                            ggtheme = theme_minimal(),
-                            ox.scale = linpredict)
+      p <- survminer::ggcoxdiagnostics(tab,
+                                       type = residType,
+                                       sline = T,
+                                       sline.se = T,
+                                       ggtheme = theme_minimal(),
+                                       ox.scale = linpredict)
       p <- ggpar(p,
                  font.x = AxisFont,
                  font.y = AxisFont,
@@ -5225,7 +6260,7 @@ server <- function(input, output, session) {
     
     tab_df[is.na(tab_df)] <- ""
     tab_df <- tab_df %>%
-      select(label,n_obs,estimate,std.error,ci,p.value)
+      dplyr::select(label,n_obs,estimate,std.error,ci,p.value)
     colnames(tab_df) <- c("Variable","N","Hazard Ratio","Std. Error","95% Confidence Interval","P.Value")
     
     tab_df
@@ -5244,7 +6279,7 @@ server <- function(input, output, session) {
     tab <- BiVarIntTab_react()
     out <- capture.output(summary(tab))
     xph <- capture.output(cox.zph(tab))
-
+    
     con_line <- grep("^Concordance=",out,value = T)
     lik_line <- grep("^Likelihood ratio test=",out,value = T)
     wal_line <- grep("^Wald test",out,value = T)
@@ -5339,27 +6374,27 @@ server <- function(input, output, session) {
       #	LassoLmin_E1609_Top3v2FlowCytProt_OS_TrainAC50_TestACBall_v2_RiskScore
       
       ## Generate plot
-      ggsurv <- ggsurvplot(fit, data = meta_ssgsea_sdf, risk.table = TRUE,
-                           title = SurvPlotTitle,
-                           xscale = c("d_y"),
-                           #palette = cbp1,
-                           break.time.by=breakTime,
-                           xlab = "Years", 
-                           ylab = paste(SurvDateType,"Survival Probability"),
-                           submain = "Based on Kaplan-Meier estimates",
-                           caption = "created with survminer",
-                           pval=show_pval,
-                           conf.int = ShowConfInt,
-                           ggtheme = theme_bw(),
-                           font.title = c(16, "bold"),
-                           font.submain = c(12, "italic"),
-                           font.caption = c(12, "plain"),
-                           font.x = c(14, "plain"),
-                           font.y = c(14, "plain"),
-                           font.tickslab = c(12, "plain"),
-                           legend = showLegend,
-                           risk.table.height = 0.20,
-                           surv.median.line = showMedSurv
+      ggsurv <- survminer::ggsurvplot(fit, data = meta_ssgsea_sdf, risk.table = TRUE,
+                                      title = SurvPlotTitle,
+                                      xscale = c("d_y"),
+                                      #palette = cbp1,
+                                      break.time.by=breakTime,
+                                      xlab = "Years", 
+                                      ylab = paste(SurvDateType,"Survival Probability"),
+                                      submain = "Based on Kaplan-Meier estimates",
+                                      caption = "created with survminer",
+                                      pval=show_pval,
+                                      conf.int = ShowConfInt,
+                                      ggtheme = theme_bw(),
+                                      font.title = c(16, "bold"),
+                                      font.submain = c(12, "italic"),
+                                      font.caption = c(12, "plain"),
+                                      font.x = c(14, "plain"),
+                                      font.y = c(14, "plain"),
+                                      font.tickslab = c(12, "plain"),
+                                      legend = showLegend,
+                                      risk.table.height = 0.20,
+                                      surv.median.line = showMedSurv
       )
       if (showMedSurv != "none") {
         MedSurvItem <- ggsurv[["plot"]][["layers"]][length(ggsurv[["plot"]][["layers"]])]
@@ -5400,10 +6435,10 @@ server <- function(input, output, session) {
       Feature2 <- input$SurvivalFeatureBi2Inter
       forextFont <- input$ForestFontSize
       
-      forest <- ggforest(tab,
-                         data = meta_ssgsea_sdf,
-                         main = paste("Hazard Ratio Modeling: ",paste(Feature1,"*",Feature2,sep = ""),sep = ""),
-                         fontsize = forextFont)
+      forest <- survminer::ggforest(tab,
+                                    data = meta_ssgsea_sdf,
+                                    main = paste("Hazard Ratio Modeling: ",paste(Feature1,"*",Feature2,sep = ""),sep = ""),
+                                    fontsize = forextFont)
       forest
       
     }
@@ -5469,19 +6504,19 @@ server <- function(input, output, session) {
       Feature2 <- gsubCheck(Feature2)
       Feat2Var <- gsubCheck(Feat2Var)
       
-    
-    colnames(meta_ssgsea_sdf)[which(colnames(meta_ssgsea_sdf) == surv_time_col)] <- "time"
-    colnames(meta_ssgsea_sdf)[which(colnames(meta_ssgsea_sdf) == surv_id_col)] <- "ID"
-    
-    Feature1 <- colnames(meta_ssgsea_sdf)[4]
-    Feature2 <- colnames(meta_ssgsea_sdf)[5]
-    
-    form <- paste("Surv(time,ID) ~ ",paste(Feature1,"*",Feature2,sep = ""),sep = "")
-    form2 <- as.formula(form)
-    tab <- eval(substitute(coxph(form2,data = meta_ssgsea_sdf)))
-    
-    tab
-    
+      
+      colnames(meta_ssgsea_sdf)[which(colnames(meta_ssgsea_sdf) == surv_time_col)] <- "time"
+      colnames(meta_ssgsea_sdf)[which(colnames(meta_ssgsea_sdf) == surv_id_col)] <- "ID"
+      
+      Feature1 <- colnames(meta_ssgsea_sdf)[4]
+      Feature2 <- colnames(meta_ssgsea_sdf)[5]
+      
+      form <- paste("Surv(time,ID) ~ ",paste(Feature1,"*",Feature2,sep = ""),sep = "")
+      form2 <- as.formula(form)
+      tab <- eval(substitute(coxph(form2,data = meta_ssgsea_sdf)))
+      
+      tab
+      
     }
     
   })
@@ -5499,12 +6534,12 @@ server <- function(input, output, session) {
       MainFont <- input$linMainFont
       TickFont <- input$linTickFont
       
-      p <- ggcoxdiagnostics(tab,
-                            type = residType,
-                            sline = T,
-                            sline.se = T,
-                            ggtheme = theme_minimal(),
-                            ox.scale = linpredict)
+      p <- survminer::ggcoxdiagnostics(tab,
+                                       type = residType,
+                                       sline = T,
+                                       sline.se = T,
+                                       ggtheme = theme_minimal(),
+                                       ox.scale = linpredict)
       p <- ggpar(p,
                  font.x = AxisFont,
                  font.y = AxisFont,
@@ -5540,12 +6575,12 @@ server <- function(input, output, session) {
       MainFont <- input$linMainFont
       TickFont <- input$linTickFont
       
-      p <- ggcoxdiagnostics(tab,
-                            type = residType,
-                            sline = T,
-                            sline.se = T,
-                            ggtheme = theme_minimal(),
-                            ox.scale = linpredict)
+      p <- survminer::ggcoxdiagnostics(tab,
+                                       type = residType,
+                                       sline = T,
+                                       sline.se = T,
+                                       ggtheme = theme_minimal(),
+                                       ox.scale = linpredict)
       p <- ggpar(p,
                  font.x = AxisFont,
                  font.y = AxisFont,
@@ -5684,7 +6719,7 @@ server <- function(input, output, session) {
       
       tab_df[is.na(tab_df)] <- ""
       tab_df <- tab_df %>%
-        select(label,n_obs,estimate,std.error,ci,p.value)
+        dplyr::select(label,n_obs,estimate,std.error,ci,p.value)
       colnames(tab_df) <- c("Variable","N","Hazard Ratio","Std. Error","95% Confidence Interval","P.Value")
       
       tab_df
@@ -5714,7 +6749,7 @@ server <- function(input, output, session) {
       
       tab_df[is.na(tab_df)] <- ""
       tab_df <- tab_df %>%
-        select(label,n_obs,estimate,std.error,ci,p.value)
+        dplyr::select(label,n_obs,estimate,std.error,ci,p.value)
       colnames(tab_df) <- c("Variable","N","Hazard Ratio","Std. Error","95% Confidence Interval","P.Value")
       
       tab_df
@@ -5769,10 +6804,10 @@ server <- function(input, output, session) {
       Feature <- input$SurvivalFeature
       forextFont <- input$ForestFontSize
       
-      forest <- ggforest(tab,
-                         data = meta_ssgsea_sdf,
-                         main = paste("Hazard Ratio Modeling: ",paste(Feature,collapse = ", "),sep = ""),
-                         fontsize = forextFont)
+      forest <- survminer::ggforest(tab,
+                                    data = meta_ssgsea_sdf,
+                                    main = paste("Hazard Ratio Modeling: ",paste(Feature,collapse = ", "),sep = ""),
+                                    fontsize = forextFont)
       forest
       
     }
@@ -5896,7 +6931,7 @@ server <- function(input, output, session) {
       labs(x = "Group", y = scoreMethod,
            title = paste(GeneSet," ",scoreMethod,": ",Feature,SampleTypeLab,"Patients",sep = "")) +
       theme_bw() +
-      stat_compare_means(method = input$boxoptselec) +
+      ggpubr::stat_compare_means(method = input$boxoptselec) +
       theme(text = element_text(size = font))
     plot
     
@@ -5982,7 +7017,7 @@ server <- function(input, output, session) {
       hmcols <- inferno(500)
     }
     else if (color_choice == "Viridis") {
-      hmcols <- viridis(500)
+      hmcols <- viridis::viridis(500)
     }
     else if (color_choice == "Plasma") {
       hmcols <- plasma(500)
@@ -5996,17 +7031,17 @@ server <- function(input, output, session) {
     else if (color_choice == "GreenBlackRed") {
       hmcols<- colorRampPalette(c("green","black","red"))(length(bk)-1)
     }
-    heat <- pheatmap(dataset2,
-                     cluster_col = F,
-                     cluster_row = T,
-                     fontsize_row = rowfont,
-                     fontsize_col = colfont,
-                     show_rownames = T ,
-                     show_colnames = T,
-                     annotation_col = meta4,
-                     clustering_method = clmethod,
-                     color=hmcols,
-                     border_color = NA)
+    heat <- pheatmap::pheatmap(dataset2,
+                               cluster_col = F,
+                               cluster_row = T,
+                               fontsize_row = rowfont,
+                               fontsize_col = colfont,
+                               show_rownames = T ,
+                               show_colnames = T,
+                               annotation_col = meta4,
+                               clustering_method = clmethod,
+                               color=hmcols,
+                               border_color = NA)
     heat
     
   })
@@ -6082,7 +7117,7 @@ server <- function(input, output, session) {
                            Feature,SampleTypeLab,"Patients Featuring ",FeatureSelec,sep = ""),
              fill = FeatureSelec) +
         theme_bw() +
-        stat_compare_means(method = StatMethod) +
+        ggpubr::stat_compare_means(method = StatMethod) +
         theme(text = element_text(size = font)) +
         scale_x_discrete(guide = guide_axis(n.dodge = 2))
     }
@@ -6097,7 +7132,7 @@ server <- function(input, output, session) {
                              Feature,SampleTypeLab,"Patients Featuring ",FeatureSelec,sep = ""),
                fill = FeatureSelec) +
           theme_bw() +
-          stat_compare_means(method = StatMethod) +
+          ggpubr::stat_compare_means(method = StatMethod) +
           theme(text = element_text(size = font))
       }
       else if (as.numeric(boxplotang) == 45) {
@@ -6109,7 +7144,7 @@ server <- function(input, output, session) {
                              Feature,SampleTypeLab,"Patients Featuring ",FeatureSelec,sep = ""),
                fill = FeatureSelec) +
           theme_bw() +
-          stat_compare_means(method = StatMethod) +
+          ggpubr::stat_compare_means(method = StatMethod) +
           theme(text = element_text(size = font),
                 axis.text.x = element_text(angle = as.numeric(boxplotang), hjust = 1))
       }
@@ -6122,7 +7157,7 @@ server <- function(input, output, session) {
                              Feature,SampleTypeLab,"Patients Featuring ",FeatureSelec,sep = ""),
                fill = FeatureSelec) +
           theme_bw() +
-          stat_compare_means(method = StatMethod) +
+          ggpubr::stat_compare_means(method = StatMethod) +
           theme(text = element_text(size = font),
                 axis.text.x = element_text(angle = as.numeric(boxplotang)))
       }
@@ -6203,7 +7238,7 @@ server <- function(input, output, session) {
       hmcols <- inferno(500)
     }
     else if (color_choice == "Viridis") {
-      hmcols <- viridis(500)
+      hmcols <- viridis::viridis(500)
     }
     else if (color_choice == "Plasma") {
       hmcols <- plasma(500)
@@ -6217,17 +7252,17 @@ server <- function(input, output, session) {
     else if (color_choice == "GreenBlackRed") {
       hmcols<- colorRampPalette(c("green","black","red"))(length(bk)-1)
     }
-    heat <- pheatmap(dataset2,
-                     cluster_col = F,
-                     cluster_row = T,
-                     fontsize_row = rowfont,
-                     fontsize_col = colfont,
-                     show_rownames = T ,
-                     show_colnames = T,
-                     annotation_col = meta4,
-                     clustering_method = clmethod,
-                     color=hmcols,
-                     border_color = NA)
+    heat <- pheatmap::pheatmap(dataset2,
+                               cluster_col = F,
+                               cluster_row = T,
+                               fontsize_row = rowfont,
+                               fontsize_col = colfont,
+                               show_rownames = T ,
+                               show_colnames = T,
+                               annotation_col = meta4,
+                               clustering_method = clmethod,
+                               color=hmcols,
+                               border_color = NA)
     heat
     
   })
@@ -6410,7 +7445,7 @@ server <- function(input, output, session) {
       p <- p + theme(legend.position = "none") +
         geom_point(color = scores[1,4])
     }
-    #p <- ggplotly(p,tooltip = "text")
+    #p <- plotly::ggplotly(p,tooltip = "text")
     p
     
   })
@@ -6418,7 +7453,7 @@ server <- function(input, output, session) {
   output$FeatCompScatterPlot <- renderPlotly({
     
     p <- FeatCompScatterPlot_react()
-    ply <- ggplotly(p,tooltip = "text")
+    ply <- plotly::ggplotly(p,tooltip = "text")
     ply
     
   })
@@ -6457,20 +7492,20 @@ server <- function(input, output, session) {
         SampleType <- input$SampleTypeSelection_lasso
       }
       if (length(unique(metaSub[,metacol_sampletype])) <= 1) {
-        SampleType <- "All_Sample_Types"
+        SampleType <- "Show All Sample Types"
       }
       
-      if (SampleType == "All_Sample_Types") {
+      if (SampleType == "Show All Sample Types") {
         metaSub <- metaSub
       }
-      if (SampleType != "All_Sample_Types") {
+      if (SampleType != "Show All Sample Types") {
         metaSub <- metaSub[which(metaSub[,metacol_sampletype] == SampleType),]
       }
       
-      if (Feature != "All_Features") {
+      if (Feature != "Show All Samples") {
         metaSub <- metaSub[which(metaSub[,Feature] == SubFeature),]
       }
-      if (Feature == "All_Features") {
+      if (Feature == "Show All Samples") {
         metaSub <- metaSub
       }
       samplesSelec <- metaSub$SampleName
@@ -6519,7 +7554,7 @@ server <- function(input, output, session) {
   })
   
   LassoRun_train_model <- eventReactive(input$RunLassoModelGen, {
-  #LassoRun_train_model <- reactive({
+    #LassoRun_train_model <- reactive({
     
     runData <- lasso_runData()
     score_train <- as.matrix(runData$score_train)
@@ -6814,7 +7849,7 @@ server <- function(input, output, session) {
     else if (CutPoption == "Optimal") {
       if (length(KP_df_train[,2][KP_df_train[,2] > 0])/length(KP_df_train[,2]) > 0.01) {
         if (length(KP_df_train[,4]) > 1) {
-          res.cut <- surv_cutpoint(KP_df_train,time = "time", event = "ID", variable = colnames(KP_df_train)[2], minprop = 0.01)
+          res.cut <- survminer::surv_cutpoint(KP_df_train,time = "time", event = "ID", variable = colnames(KP_df_train)[2], minprop = 0.01)
           cutp <- res.cut$cutpoint[["cutpoint"]]
           res.cat <- surv_categorize(res.cut)
           KP_df_train$OptimalCutP <- res.cat[,3]
@@ -6870,7 +7905,7 @@ server <- function(input, output, session) {
     else if (CutPoption == "Optimal") {
       if (length(KP_df_test[,2][KP_df_test[,2] > 0])/length(KP_df_test[,2]) > 0.01) {
         if (length(KP_df_test[,4]) > 1) {
-          res.cut <- surv_cutpoint(KP_df_test,time = "time", event = "ID", variable = colnames(KP_df_test)[2], minprop = 0.01)
+          res.cut <- survminer::surv_cutpoint(KP_df_test,time = "time", event = "ID", variable = colnames(KP_df_test)[2], minprop = 0.01)
           cutp <- res.cut$cutpoint[["cutpoint"]]
           res.cat <- surv_categorize(res.cut)
           KP_df_test$OptimalCutP <- res.cat[,3]
@@ -6963,7 +7998,7 @@ server <- function(input, output, session) {
     tab_train_df <- as.data.frame(tab_train)
     
     tab_train_df <- tab_train_df %>%
-      select(label,estimate,ci,p.value)
+      dplyr::select(label,estimate,ci,p.value)
     colnames(tab_train_df) <- c("Characteristic","Hazard Ratio","95% Confidence Interval","P.Value")
     
     tab_train_df
@@ -6979,7 +8014,7 @@ server <- function(input, output, session) {
     tab_test_df <- as.data.frame(tab_test)
     
     tab_test_df <- tab_test_df %>%
-      select(label,estimate,ci,p.value)
+      dplyr::select(label,estimate,ci,p.value)
     colnames(tab_test_df) <- c("Characteristic","Hazard Ratio","95% Confidence Interval","P.Value")
     
     tab_test_df
@@ -7039,28 +8074,28 @@ server <- function(input, output, session) {
     
     ### determine Feature and Sample Type label
     #if (length(unique(meta[,metacol_sampletype])) > 1) {
-    #  if (SampleType == "All_Sample_Types") {
-    #    if (Feature == "All_Features") {
+    #  if (SampleType == "Show All Sample Types") {
+    #    if (Feature == "Show All Samples") {
     #      SampleTypeLab <- "All Features in All Patients\n"
     #    }
-    #    if (Feature != "All_Features") {
+    #    if (Feature != "Show All Samples") {
     #      SampleTypeLab <- paste(Feature," in All Patients\n")
     #    }
     #  }
     #  else {
-    #    if (Feature == "All_Features") {
+    #    if (Feature == "Show All Samples") {
     #      SampleTypeLab <- paste("All Features (",SampleType,") Patients\n",sep = "")
     #    }
-    #    if (Feature != "All_Features") {
+    #    if (Feature != "Show All Samples") {
     #      SampleTypeLab <- paste(Feature," (",SampleType,") Patients\n",sep = "")
     #    }
     #  }
     #}
     #if (length(unique(meta[,metacol_sampletype])) <= 1) {
-    #  if (Feature == "All_Features") {
+    #  if (Feature == "Show All Samples") {
     #    SampleTypeLab <- "All Features in All Patients\n"
     #  }
-    #  if (Feature != "All_Features") {
+    #  if (Feature != "Show All Samples") {
     #    SampleTypeLab <- paste(Feature," in All Patients\n")
     #  }
     #}
@@ -7069,7 +8104,7 @@ server <- function(input, output, session) {
     if (LambdaChoice == "Custom") {
       LambdaChoice <- "Custom Lambda"
     }
-
+    
     ## Determine Plot title
     if (is.null(input$SurvPlotTitleLasso)) {
       SurvPlotTitle <- paste("Survival curves of Training Data (",LambdaChoice,")\n",
@@ -7091,26 +8126,26 @@ server <- function(input, output, session) {
     }
     
     ## Generate plot
-    ggsurv <- ggsurvplot(fit_train, data = KP_df_train, risk.table = TRUE,
-                         title = SurvPlotTitle,
-                         xscale = c("d_y"),
-                         break.time.by=breakTime,
-                         xlab = "Years", 
-                         ylab = paste(SurvDateType,"Survival Probability"),
-                         submain = "Based on Kaplan-Meier estimates",
-                         caption = "created with survminer",
-                         pval=show_pval,
-                         conf.int = ShowConfInt,
-                         ggtheme = theme_bw(),
-                         font.title = c(16, "bold"),
-                         font.submain = c(12, "italic"),
-                         font.caption = c(12, "plain"),
-                         font.x = c(14, "plain"),
-                         font.y = c(14, "plain"),
-                         font.tickslab = c(12, "plain"),
-                         legend = showLegend,
-                         risk.table.height = 0.20,
-                         surv.median.line = showMedSurv
+    ggsurv <- survminer::ggsurvplot(fit_train, data = KP_df_train, risk.table = TRUE,
+                                    title = SurvPlotTitle,
+                                    xscale = c("d_y"),
+                                    break.time.by=breakTime,
+                                    xlab = "Years", 
+                                    ylab = paste(SurvDateType,"Survival Probability"),
+                                    submain = "Based on Kaplan-Meier estimates",
+                                    caption = "created with survminer",
+                                    pval=show_pval,
+                                    conf.int = ShowConfInt,
+                                    ggtheme = theme_bw(),
+                                    font.title = c(16, "bold"),
+                                    font.submain = c(12, "italic"),
+                                    font.caption = c(12, "plain"),
+                                    font.x = c(14, "plain"),
+                                    font.y = c(14, "plain"),
+                                    font.tickslab = c(12, "plain"),
+                                    legend = showLegend,
+                                    risk.table.height = 0.20,
+                                    surv.median.line = showMedSurv
     )
     if (showMedSurv != "none") {
       MedSurvItem <- ggsurv[["plot"]][["layers"]][length(ggsurv[["plot"]][["layers"]])]
@@ -7173,28 +8208,28 @@ server <- function(input, output, session) {
     
     ### determine Feature and Sample Type label
     #if (length(unique(meta[,metacol_sampletype])) > 1) {
-    #  if (SampleType == "All_Sample_Types") {
-    #    if (Feature == "All_Features") {
+    #  if (SampleType == "Show All Sample Types") {
+    #    if (Feature == "Show All Samples") {
     #      SampleTypeLab <- "All Features in All Patients\n"
     #    }
-    #    if (Feature != "All_Features") {
+    #    if (Feature != "Show All Samples") {
     #      SampleTypeLab <- paste(Feature," in All Patients\n")
     #    }
     #  }
     #  else {
-    #    if (Feature == "All_Features") {
+    #    if (Feature == "Show All Samples") {
     #      SampleTypeLab <- paste("All Features (",SampleType,") Patients\n",sep = "")
     #    }
-    #    if (Feature != "All_Features") {
+    #    if (Feature != "Show All Samples") {
     #      SampleTypeLab <- paste(Feature," (",SampleType,") Patients\n",sep = "")
     #    }
     #  }
     #}
     #if (length(unique(meta[,metacol_sampletype])) <= 1) {
-    #  if (Feature == "All_Features") {
+    #  if (Feature == "Show All Samples") {
     #    SampleTypeLab <- "All Features in All Patients\n"
     #  }
-    #  if (Feature != "All_Features") {
+    #  if (Feature != "Show All Samples") {
     #    SampleTypeLab <- paste(Feature," in All Patients\n")
     #  }
     #}
@@ -7223,26 +8258,26 @@ server <- function(input, output, session) {
     }
     
     ## Generate plot
-    ggsurv <- ggsurvplot(fit_test, data = KP_df_test, risk.table = TRUE,
-                         title = SurvPlotTitle,
-                         xscale = c("d_y"),
-                         break.time.by=breakTime,
-                         xlab = "Years", 
-                         ylab = paste(SurvDateType,"Survival Probability"),
-                         submain = "Based on Kaplan-Meier estimates",
-                         caption = "created with survminer",
-                         pval=show_pval,
-                         conf.int = ShowConfInt,
-                         ggtheme = theme_bw(),
-                         font.title = c(16, "bold"),
-                         font.submain = c(12, "italic"),
-                         font.caption = c(12, "plain"),
-                         font.x = c(14, "plain"),
-                         font.y = c(14, "plain"),
-                         font.tickslab = c(12, "plain"),
-                         legend = showLegend,
-                         risk.table.height = 0.20,
-                         surv.median.line = showMedSurv
+    ggsurv <- survminer::ggsurvplot(fit_test, data = KP_df_test, risk.table = TRUE,
+                                    title = SurvPlotTitle,
+                                    xscale = c("d_y"),
+                                    break.time.by=breakTime,
+                                    xlab = "Years", 
+                                    ylab = paste(SurvDateType,"Survival Probability"),
+                                    submain = "Based on Kaplan-Meier estimates",
+                                    caption = "created with survminer",
+                                    pval=show_pval,
+                                    conf.int = ShowConfInt,
+                                    ggtheme = theme_bw(),
+                                    font.title = c(16, "bold"),
+                                    font.submain = c(12, "italic"),
+                                    font.caption = c(12, "plain"),
+                                    font.x = c(14, "plain"),
+                                    font.y = c(14, "plain"),
+                                    font.tickslab = c(12, "plain"),
+                                    legend = showLegend,
+                                    risk.table.height = 0.20,
+                                    surv.median.line = showMedSurv
     )
     if (showMedSurv != "none") {
       MedSurvItem <- ggsurv[["plot"]][["layers"]][length(ggsurv[["plot"]][["layers"]])]
@@ -7374,10 +8409,10 @@ server <- function(input, output, session) {
       geneset_name <- names(geneset)
       Feature <- input$FeatureSelection
       scoreMethod <- input$ScoreMethod
-      if (Feature != "All_Features") {
+      if (Feature != "Show All Samples") {
         SubFeature <- paste("_",input$subFeatureSelection,"_",sep = "")
       }
-      if (Feature == "All_Features") {
+      if (Feature == "Show All Samples") {
         SubFeature <- "_"
       }
       if (input$GeneSetTabs == 2) {
@@ -7419,10 +8454,10 @@ server <- function(input, output, session) {
       geneset_name <- names(geneset)
       Feature <- input$FeatureSelection
       scoreMethod <- input$ScoreMethod
-      if (Feature != "All_Features") {
+      if (Feature != "Show All Samples") {
         SubFeature <- paste("_",input$subFeatureSelection,"_",sep = "")
       }
-      if (Feature == "All_Features") {
+      if (Feature == "Show All Samples") {
         SubFeature <- "_"
       }
       if (input$GeneSetTabs == 2) {
@@ -7466,10 +8501,10 @@ server <- function(input, output, session) {
       geneset_name <- names(geneset)
       Feature <- input$FeatureSelection
       scoreMethod <- input$ScoreMethod
-      if (Feature != "All_Features") {
+      if (Feature != "Show All Samples") {
         SubFeature <- paste("_",input$subFeatureSelection,"_",sep = "")
       }
-      if (Feature == "All_Features") {
+      if (Feature == "Show All Samples") {
         SubFeature <- "_"
       }
       if (input$GeneSetTabs == 2) {
@@ -7511,10 +8546,10 @@ server <- function(input, output, session) {
       geneset_name <- names(geneset)
       Feature <- input$FeatureSelection
       scoreMethod <- input$ScoreMethod
-      if (Feature != "All_Features") {
+      if (Feature != "Show All Samples") {
         SubFeature <- paste("_",input$subFeatureSelection,"_",sep = "")
       }
-      if (Feature == "All_Features") {
+      if (Feature == "Show All Samples") {
         SubFeature <- "_"
       }
       if (input$GeneSetTabs == 2) {
@@ -7558,10 +8593,10 @@ server <- function(input, output, session) {
       geneset_name <- names(geneset)
       Feature <- input$FeatureSelection
       scoreMethod <- input$ScoreMethod
-      if (Feature != "All_Features") {
+      if (Feature != "Show All Samples") {
         SubFeature <- paste("_",input$subFeatureSelection,"_",sep = "")
       }
-      if (Feature == "All_Features") {
+      if (Feature == "Show All Samples") {
         SubFeature <- "_"
       }
       if (input$GeneSetTabs == 2) {
@@ -7603,10 +8638,10 @@ server <- function(input, output, session) {
       geneset_name <- names(geneset)
       Feature <- input$FeatureSelection
       scoreMethod <- input$ScoreMethod
-      if (Feature != "All_Features") {
+      if (Feature != "Show All Samples") {
         SubFeature <- paste("_",input$subFeatureSelection,"_",sep = "")
       }
-      if (Feature == "All_Features") {
+      if (Feature == "Show All Samples") {
         SubFeature <- "_"
       }
       if (input$GeneSetTabs == 2) {
@@ -7650,10 +8685,10 @@ server <- function(input, output, session) {
       geneset_name <- names(geneset)
       Feature <- input$FeatureSelection
       scoreMethod <- input$ScoreMethod
-      if (Feature != "All_Features") {
+      if (Feature != "Show All Samples") {
         SubFeature <- paste("_",input$subFeatureSelection,"_",sep = "")
       }
-      if (Feature == "All_Features") {
+      if (Feature == "Show All Samples") {
         SubFeature <- "_"
       }
       if (input$GeneSetTabs == 2) {
@@ -7695,10 +8730,10 @@ server <- function(input, output, session) {
       geneset_name <- names(geneset)
       Feature <- input$FeatureSelection
       scoreMethod <- input$ScoreMethod
-      if (Feature != "All_Features") {
+      if (Feature != "Show All Samples") {
         SubFeature <- paste("_",input$subFeatureSelection,"_",sep = "")
       }
-      if (Feature == "All_Features") {
+      if (Feature == "Show All Samples") {
         SubFeature <- "_"
       }
       if (input$GeneSetTabs == 2) {
@@ -7742,10 +8777,10 @@ server <- function(input, output, session) {
       geneset_name <- names(geneset)
       Feature <- input$FeatureSelection
       scoreMethod <- input$ScoreMethod
-      if (Feature != "All_Features") {
+      if (Feature != "Show All Samples") {
         SubFeature <- paste("_",input$subFeatureSelection,"_",sep = "")
       }
-      if (Feature == "All_Features") {
+      if (Feature == "Show All Samples") {
         SubFeature <- "_"
       }
       if (input$GeneSetTabs == 2) {
@@ -7787,10 +8822,10 @@ server <- function(input, output, session) {
       geneset_name <- names(geneset)
       Feature <- input$FeatureSelection
       scoreMethod <- input$ScoreMethod
-      if (Feature != "All_Features") {
+      if (Feature != "Show All Samples") {
         SubFeature <- paste("_",input$subFeatureSelection,"_",sep = "")
       }
-      if (Feature == "All_Features") {
+      if (Feature == "Show All Samples") {
         SubFeature <- "_"
       }
       if (input$GeneSetTabs == 2) {
@@ -7838,10 +8873,10 @@ server <- function(input, output, session) {
       Feature <- input$FeatureSelection
       scoreMethod <- input$ScoreMethod
       Feature1 <- input$SingleSurvivalFeature
-      if (Feature != "All_Features") {
+      if (Feature != "Show All Samples") {
         SubFeature <- paste("_",input$subFeatureSelection,"_",sep = "")
       }
-      if (Feature == "All_Features") {
+      if (Feature == "Show All Samples") {
         SubFeature <- "_"
       }
       if (input$GeneSetTabs == 2) {
@@ -7884,10 +8919,10 @@ server <- function(input, output, session) {
       Feature <- input$FeatureSelection
       scoreMethod <- input$ScoreMethod
       Feature1 <- input$SingleSurvivalFeature
-      if (Feature != "All_Features") {
+      if (Feature != "Show All Samples") {
         SubFeature <- paste("_",input$subFeatureSelection,"_",sep = "")
       }
-      if (Feature == "All_Features") {
+      if (Feature == "Show All Samples") {
         SubFeature <- "_"
       }
       if (input$GeneSetTabs == 2) {
@@ -7933,10 +8968,10 @@ server <- function(input, output, session) {
       Feature <- input$FeatureSelection
       scoreMethod <- input$ScoreMethod
       Feature1 <- input$SingleSurvivalFeature
-      if (Feature != "All_Features") {
+      if (Feature != "Show All Samples") {
         SubFeature <- paste("_",input$subFeatureSelection,"_",sep = "")
       }
-      if (Feature == "All_Features") {
+      if (Feature == "Show All Samples") {
         SubFeature <- "_"
       }
       if (input$GeneSetTabs == 2) {
@@ -7979,10 +9014,10 @@ server <- function(input, output, session) {
       Feature <- input$FeatureSelection
       scoreMethod <- input$ScoreMethod
       Feature1 <- input$SingleSurvivalFeature
-      if (Feature != "All_Features") {
+      if (Feature != "Show All Samples") {
         SubFeature <- paste("_",input$subFeatureSelection,"_",sep = "")
       }
-      if (Feature == "All_Features") {
+      if (Feature == "Show All Samples") {
         SubFeature <- "_"
       }
       if (input$GeneSetTabs == 2) {
@@ -8028,10 +9063,10 @@ server <- function(input, output, session) {
       Feature <- input$FeatureSelection
       scoreMethod <- input$ScoreMethod
       Feature1 <- input$SingleSurvivalFeature
-      if (Feature != "All_Features") {
+      if (Feature != "Show All Samples") {
         SubFeature <- paste("_",input$subFeatureSelection,"_",sep = "")
       }
-      if (Feature == "All_Features") {
+      if (Feature == "Show All Samples") {
         SubFeature <- "_"
       }
       if (input$GeneSetTabs == 2) {
@@ -8068,10 +9103,10 @@ server <- function(input, output, session) {
       Feature <- input$FeatureSelection
       scoreMethod <- input$ScoreMethod
       Feature1 <- input$SingleSurvivalFeature
-      if (Feature != "All_Features") {
+      if (Feature != "Show All Samples") {
         SubFeature <- paste("_",input$subFeatureSelection,"_",sep = "")
       }
-      if (Feature == "All_Features") {
+      if (Feature == "Show All Samples") {
         SubFeature <- "_"
       }
       if (input$GeneSetTabs == 2) {
@@ -8122,10 +9157,10 @@ server <- function(input, output, session) {
       scoreMethod <- input$ScoreMethod
       Feature1 <- input$SurvivalFeatureBi1
       Feature2 <- input$SurvivalFeatureBi2
-      if (Feature != "All_Features") {
+      if (Feature != "Show All Samples") {
         SubFeature <- paste("_",input$subFeatureSelection,"_",sep = "")
       }
-      if (Feature == "All_Features") {
+      if (Feature == "Show All Samples") {
         SubFeature <- "_"
       }
       if (input$GeneSetTabs == 2) {
@@ -8169,10 +9204,10 @@ server <- function(input, output, session) {
       scoreMethod <- input$ScoreMethod
       Feature1 <- input$SurvivalFeatureBi1
       Feature2 <- input$SurvivalFeatureBi2
-      if (Feature != "All_Features") {
+      if (Feature != "Show All Samples") {
         SubFeature <- paste("_",input$subFeatureSelection,"_",sep = "")
       }
-      if (Feature == "All_Features") {
+      if (Feature == "Show All Samples") {
         SubFeature <- "_"
       }
       if (input$GeneSetTabs == 2) {
@@ -8219,10 +9254,10 @@ server <- function(input, output, session) {
       scoreMethod <- input$ScoreMethod
       Feature1 <- input$SurvivalFeatureBi1
       Feature2 <- input$SurvivalFeatureBi2
-      if (Feature != "All_Features") {
+      if (Feature != "Show All Samples") {
         SubFeature <- paste("_",input$subFeatureSelection,"_",sep = "")
       }
-      if (Feature == "All_Features") {
+      if (Feature == "Show All Samples") {
         SubFeature <- "_"
       }
       if (input$GeneSetTabs == 2) {
@@ -8266,10 +9301,10 @@ server <- function(input, output, session) {
       scoreMethod <- input$ScoreMethod
       Feature1 <- input$SurvivalFeatureBi1
       Feature2 <- input$SurvivalFeatureBi2
-      if (Feature != "All_Features") {
+      if (Feature != "Show All Samples") {
         SubFeature <- paste("_",input$subFeatureSelection,"_",sep = "")
       }
-      if (Feature == "All_Features") {
+      if (Feature == "Show All Samples") {
         SubFeature <- "_"
       }
       if (input$GeneSetTabs == 2) {
@@ -8319,10 +9354,10 @@ server <- function(input, output, session) {
       scoreMethod <- input$ScoreMethod
       Feature1 <- input$SurvivalFeatureBi1Inter
       Feature2 <- input$SurvivalFeatureBi2Inter
-      if (Feature != "All_Features") {
+      if (Feature != "Show All Samples") {
         SubFeature <- paste("_",input$subFeatureSelection,"_",sep = "")
       }
-      if (Feature == "All_Features") {
+      if (Feature == "Show All Samples") {
         SubFeature <- "_"
       }
       if (input$GeneSetTabs == 2) {
@@ -8366,10 +9401,10 @@ server <- function(input, output, session) {
       scoreMethod <- input$ScoreMethod
       Feature1 <- input$SurvivalFeatureBi1Inter
       Feature2 <- input$SurvivalFeatureBi2Inter
-      if (Feature != "All_Features") {
+      if (Feature != "Show All Samples") {
         SubFeature <- paste("_",input$subFeatureSelection,"_",sep = "")
       }
-      if (Feature == "All_Features") {
+      if (Feature == "Show All Samples") {
         SubFeature <- "_"
       }
       if (input$GeneSetTabs == 2) {
@@ -8416,10 +9451,10 @@ server <- function(input, output, session) {
       scoreMethod <- input$ScoreMethod
       Feature1 <- input$SurvivalFeatureBi1Inter
       Feature2 <- input$SurvivalFeatureBi2Inter
-      if (Feature != "All_Features") {
+      if (Feature != "Show All Samples") {
         SubFeature <- paste("_",input$subFeatureSelection,"_",sep = "")
       }
-      if (Feature == "All_Features") {
+      if (Feature == "Show All Samples") {
         SubFeature <- "_"
       }
       if (input$GeneSetTabs == 2) {
@@ -8463,10 +9498,10 @@ server <- function(input, output, session) {
       scoreMethod <- input$ScoreMethod
       Feature1 <- input$SurvivalFeatureBi1Inter
       Feature2 <- input$SurvivalFeatureBi2Inter
-      if (Feature != "All_Features") {
+      if (Feature != "Show All Samples") {
         SubFeature <- paste("_",input$subFeatureSelection,"_",sep = "")
       }
-      if (Feature == "All_Features") {
+      if (Feature == "Show All Samples") {
         SubFeature <- "_"
       }
       if (input$GeneSetTabs == 2) {
@@ -8513,10 +9548,10 @@ server <- function(input, output, session) {
       scoreMethod <- input$ScoreMethod
       Feature1 <- input$SurvivalFeatureBi1Inter
       Feature2 <- input$SurvivalFeatureBi2Inter
-      if (Feature != "All_Features") {
+      if (Feature != "Show All Samples") {
         SubFeature <- paste("_",input$subFeatureSelection,"_",sep = "")
       }
-      if (Feature == "All_Features") {
+      if (Feature == "Show All Samples") {
         SubFeature <- "_"
       }
       if (input$GeneSetTabs == 2) {
@@ -8560,10 +9595,10 @@ server <- function(input, output, session) {
       scoreMethod <- input$ScoreMethod
       Feature1 <- input$SurvivalFeatureBi1Inter
       Feature2 <- input$SurvivalFeatureBi2Inter
-      if (Feature != "All_Features") {
+      if (Feature != "Show All Samples") {
         SubFeature <- paste("_",input$subFeatureSelection,"_",sep = "")
       }
-      if (Feature == "All_Features") {
+      if (Feature == "Show All Samples") {
         SubFeature <- "_"
       }
       if (input$GeneSetTabs == 2) {
@@ -8614,10 +9649,10 @@ server <- function(input, output, session) {
       scoreMethod <- input$ScoreMethod
       Feature1 <- input$SurvivalFeatureBi1Inter
       Feature2 <- input$SurvivalFeatureBi2Inter
-      if (Feature != "All_Features") {
+      if (Feature != "Show All Samples") {
         SubFeature <- paste("_",input$subFeatureSelection,"_",sep = "")
       }
-      if (Feature == "All_Features") {
+      if (Feature == "Show All Samples") {
         SubFeature <- "_"
       }
       if (input$GeneSetTabs == 2) {
@@ -8661,10 +9696,10 @@ server <- function(input, output, session) {
       scoreMethod <- input$ScoreMethod
       Feature1 <- input$SurvivalFeatureBi1Inter
       Feature2 <- input$SurvivalFeatureBi2Inter
-      if (Feature != "All_Features") {
+      if (Feature != "Show All Samples") {
         SubFeature <- paste("_",input$subFeatureSelection,"_",sep = "")
       }
-      if (Feature == "All_Features") {
+      if (Feature == "Show All Samples") {
         SubFeature <- "_"
       }
       if (input$GeneSetTabs == 2) {
@@ -8869,10 +9904,10 @@ server <- function(input, output, session) {
       # Variables
       SampleType <- input$SampleTypeSelection
       Feature <- input$FeatureSelection
-      if (Feature != "All_Features") {
+      if (Feature != "Show All Samples") {
         SubFeature <- paste("_",input$subFeatureSelection,"_",sep = "")
       }
-      if (Feature == "All_Features") {
+      if (Feature == "Show All Samples") {
         SubFeature <- "_"
       }
       geneset <- gs_react()                 #Chosen Gene Set
@@ -9070,10 +10105,10 @@ server <- function(input, output, session) {
       SampleType <- input$SampleTypeSelection
       Feature <- input$FeatureSelection
       Feature2 <- input$HeatmapFeature
-      if (Feature != "All_Features") {
+      if (Feature != "Show All Samples") {
         SubFeature <- paste("_",input$subFeatureSelection,"_",sep = "")
       }
-      if (Feature == "All_Features") {
+      if (Feature == "Show All Samples") {
         SubFeature <- "_"
       }
       geneset <- gs_react()                 #Chosen Gene Set
@@ -9112,10 +10147,10 @@ server <- function(input, output, session) {
       SampleType <- input$SampleTypeSelection
       Feature <- input$FeatureSelection
       scoreMethod <- input$ScoreMethod
-      if (Feature != "All_Features") {
+      if (Feature != "Show All Samples") {
         SubFeature <- paste("_",input$subFeatureSelection,"_",sep = "")
       }
-      if (Feature == "All_Features") {
+      if (Feature == "Show All Samples") {
         SubFeature <- "_"
       }
       if (input$GeneSetTabs == 2) {
@@ -9156,10 +10191,10 @@ server <- function(input, output, session) {
       SampleType <- input$SampleTypeSelection
       Feature <- input$FeatureSelection
       scoreMethod <- input$ScoreMethod
-      if (Feature != "All_Features") {
+      if (Feature != "Show All Samples") {
         SubFeature <- paste("_",input$subFeatureSelection,"_",sep = "")
       }
-      if (Feature == "All_Features") {
+      if (Feature == "Show All Samples") {
         SubFeature <- "_"
       }
       if (input$GeneSetTabs == 2) {
@@ -9200,10 +10235,10 @@ server <- function(input, output, session) {
       SampleType <- input$SampleTypeSelection
       Feature <- input$FeatureSelection
       score_method <- input$ScoreMethod
-      if (Feature != "All_Features") {
+      if (Feature != "Show All Samples") {
         SubFeature <- paste("_",input$subFeatureSelection,"_",sep = "")
       }
-      if (Feature == "All_Features") {
+      if (Feature == "Show All Samples") {
         SubFeature <- "_"
       }
       # If more than one sample type
@@ -9231,10 +10266,10 @@ server <- function(input, output, session) {
     filename = function() {
       SampleType <- input$SampleTypeSelection
       Feature <- input$FeatureSelection
-      if (Feature != "All_Features") {
+      if (Feature != "Show All Samples") {
         SubFeature <- paste("_",input$subFeatureSelection,"_",sep = "")
       }
-      if (Feature == "All_Features") {
+      if (Feature == "Show All Samples") {
         SubFeature <- "_"
       }
       geneset <- gs_react()                 #Chosen Gene Set
@@ -9262,10 +10297,10 @@ server <- function(input, output, session) {
     filename = function() {
       SampleType <- input$SampleTypeSelection
       Feature <- input$FeatureSelection
-      if (Feature != "All_Features") {
+      if (Feature != "Show All Samples") {
         SubFeature <- paste("_",input$subFeatureSelection,"_",sep = "")
       }
-      if (Feature == "All_Features") {
+      if (Feature == "Show All Samples") {
         SubFeature <- "_"
       }
       # Make file name
@@ -9297,10 +10332,10 @@ server <- function(input, output, session) {
       Feature <- input$FeatureSelection
       FeatureScatter <- input$ScatterFeature
       scoreMethod <- input$ScoreMethod
-      if (Feature != "All_Features") {
+      if (Feature != "Show All Samples") {
         SubFeature <- paste("_",input$subFeatureSelection,"_",sep = "")
       }
-      if (Feature == "All_Features") {
+      if (Feature == "Show All Samples") {
         SubFeature <- "_"
       }
       if (input$GeneSetTabs == 2) {
@@ -9336,10 +10371,10 @@ server <- function(input, output, session) {
       Feature <- input$FeatureSelection
       FeatureScatter <- input$ScatterFeature
       scoreMethod <- input$ScoreMethod
-      if (Feature != "All_Features") {
+      if (Feature != "Show All Samples") {
         SubFeature <- paste("_",input$subFeatureSelection,"_",sep = "")
       }
-      if (Feature == "All_Features") {
+      if (Feature == "Show All Samples") {
         SubFeature <- "_"
       }
       if (input$GeneSetTabs == 2) {
@@ -9376,10 +10411,10 @@ server <- function(input, output, session) {
       Feature <- input$FeatureSelection
       FeatureScatter <- input$ScatterFeature
       scoreMethod <- input$ScoreMethod
-      if (Feature != "All_Features") {
+      if (Feature != "Show All Samples") {
         SubFeature <- paste("_",input$subFeatureSelection,"_",sep = "")
       }
-      if (Feature == "All_Features") {
+      if (Feature == "Show All Samples") {
         SubFeature <- "_"
       }
       if (input$GeneSetTabs == 2) {
@@ -9418,3 +10453,6 @@ server <- function(input, output, session) {
 
 
 
+
+# Run the application 
+shinyApp(ui = ui, server = server)
