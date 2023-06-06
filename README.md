@@ -27,7 +27,7 @@ The source and url links to the data below were also added to our existing GitHu
 * Visualization of this analysis can be seen in Figure 4
 * The code used to derive and append the immune deconvolution scores to the patient meta data can be found here:
   * http://shawlab.science/shiny/PATH_SURVEYOR_ExampleUseCases/PANICI_Melanoma_UseCase/Fig4_Step2_Immune_Deconvolution/
-  * GitHub Directory: [PANICI_Melanoma_UseCase/Step2_Immune_Deconvolution](hhttps://github.com/shawlab-moffitt/PATH-SURVEYOR_Manuscript_Supplementary/tree/main/PANICI_Melanoma_UseCase/Step2_Immune_Deconvolution)
+  * GitHub Directory: [PANICI_Melanoma_UseCase/Step2_Immune_Deconvolution](https://github.com/shawlab-moffitt/PATH-SURVEYOR_Manuscript_Supplementary/tree/main/PANICI_Melanoma_UseCase/Step2_Immune_Deconvolution)
 
 ## Step 3 - PATH SURVEYOR On The Fly Analysis Mode - Interactive R Shiny App
 
