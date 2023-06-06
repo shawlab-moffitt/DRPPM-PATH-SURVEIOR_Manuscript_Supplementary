@@ -76,7 +76,7 @@ The source and url links to the data below were also added to our existing GitHu
 * This was performed through the pipeline visualized the schematic seen in Figure 1 and S5.
 * Two of the top hits from this pipeline as well as a summary of enriched Cmap names and mechanisms of action (MOAs) can be seen in Figure 6.
 * The code for the analysis can be found here:
-  * hhttp://shawlab.science/shiny/PATH_SURVEYOR_ExampleUseCases/TARGET_AML_UseCase/Fig6_Step1_PATH_SURVEYOR_Pipeline/
+  * http://shawlab.science/shiny/PATH_SURVEYOR_ExampleUseCases/TARGET_AML_UseCase/Fig6_Step1_PATH_SURVEYOR_Pipeline/
   * GitHub Directory: [TARGET_AML_UseCase/Step1_PATH_SURVEYOR_Pipeline](https://github.com/shawlab-moffitt/PATH-SURVEYOR_Manuscript_Supplementary/tree/main/TARGET_AML_UseCase/Step1_PATH_SURVEYOR_Pipeline)
 
 ## Step 2 - Subset data for bootstrap analysis
